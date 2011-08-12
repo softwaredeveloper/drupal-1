@@ -1,7 +1,0 @@
-name = "Lingotek"
-description = "Extends Drupal's multilingual features using the Lingotek Collaborative Translation Platform."
-core = "7.x"
-dependencies[] = locale
-dependencies[] = translation
-php = "5.2"
-configure = admin/settings/lingotek
