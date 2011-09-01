@@ -147,7 +147,7 @@ function lingotek_summary($source) {
     $title = $node->title;
     //Don't link to itself.
     if ($node->nid != $current_nid) {
-      //Let's create the link manually so that Drupal doesn't overwrite the url to the current local:
+      //Let's create the link manually so that Drupal doesn't overwrite the url to the current locale:
       $title = "<a href=\"" . url('node/'. $node->nid, array('language' => $list[$node->language])) . "\">" . $node->title . "</a>";
     }
 

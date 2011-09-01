@@ -166,3 +166,15 @@ function lingotek_update_6200() {
   db_create_table($ret, 'lingotek_mt_queue', $schema['lingotek_mt_queue']);
   return $ret;
 }
+
+/*
+ * Update documents to using the new html embedded in xml structure utilizing CDATA
+ */
+function lingotek_update_6201() {
+  $result = db_query("SELECT n.nid FROM {lingotek} n WHERE n.lingokey = 'document_id'");
+  while ($row = db_fetch_object($result)) {
+    $node = node_load(array('nid' => $row->nid));
+    lingotek_node_update($node);
+  }
+  return array();
+}

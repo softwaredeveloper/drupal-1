@@ -124,7 +124,7 @@ function lingotek_error($msg, $data = NULL, $depth = 0, $severity = WATCHDOG_ERR
     '<span style="word-break: break-all;"><b>MESSAGE:</b> %msg <br /><b>DATA:</b> %data <br /><b>FILE:</b> %location<br /><b>FUNCTION:</b>%function<br /><b>ARGS:</b> %args</span>',
     array
     (
-    	'%msg' => $msg,
+      '%msg' => $msg,
       '%data' => $data_output,
       '%location' =>  $location,
       '%function' => $function,
