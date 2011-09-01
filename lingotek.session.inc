@@ -209,10 +209,11 @@ class LingotekSession {
       "returnXML" => $xml,
     );
     $data = $this->request('keyLogin', $params, NULL, FALSE);
-    $this->headers = array("Cookie" =>  $data->headers['Set-Cookie']);
+
     $response = json_decode($data->data);
 
     if ($response && $response->results == "success") {
+      $this->headers = array("Cookie" =>  $data->headers['Set-Cookie']);
       $this->logged_in = TRUE;
     }
     else {

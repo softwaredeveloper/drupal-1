@@ -186,7 +186,7 @@ lingotek.microsoftExecute = function(text, sourceLanguage, targetLanguage, funct
     Microsoft.Translator.translate(text, sourceLanguage, targetLanguage, lingotek["microsoftResult_" + function_counter]);
   }
   catch(err) {
-  	console.info(err);
+    console.info(err);
     lingotek.community_translate_counter++;
     var segmentCount = Math.floor(lingotek.community_translate_counter / lingotek.community_translate_languages.length);
     lingotek.progress(segmentCount);
@@ -226,7 +226,7 @@ lingotek.progress = function(current) {
  * Initialization and execution of the machine translation
  */
 lingotek.community_translate = function() {
-	lingotek.jsIncludeCounter = 0;
+  lingotek.jsIncludeCounter = 0;
 
   //Google Translation API:
   if(jQuery("[tag='lingotek-engine'][value='google']").length > 0) {
@@ -244,10 +244,10 @@ lingotek.community_translate = function() {
  * Wait until the external javascript files are included before continuing
  */
 lingotek.continue_when_ready = function() {
-	lingotek.jsIncludeCounter++;
-	if(lingotek.jsIncludeCounter >= 2) {
-		lingotek.continue_now_ready();
-	}
+  lingotek.jsIncludeCounter++;
+  if(lingotek.jsIncludeCounter >= 2) {
+    lingotek.continue_now_ready();
+  }
 }
 
 /*
@@ -437,7 +437,7 @@ lingotek.mask = function() {
  * Unmask the page
  */
 lingotek.unmask = function() {
-	jQuery("#lingotek-mt-button").attr('disabled', 'disabled');
+  jQuery("#lingotek-mt-button").attr('disabled', 'disabled');
   jQuery("body").unmask();
 }
 
@@ -445,13 +445,13 @@ lingotek.unmask = function() {
  * Cancel mask and MT
  */
 lingotek.cancel = function() {
-	lingotek.unmask();
-	if(lingotek.firstRun) {
-		jQuery.post("?q=lingotek/mt_cancel/" + jQuery("#lingotek").attr('node'), {}, function(json) { location.reload(true); });
-	}
-	else {
-		location.reload(true);
-	}
+  lingotek.unmask();
+  if(lingotek.firstRun) {
+    jQuery.post("?q=lingotek/mt_cancel/" + jQuery("#lingotek").attr('node'), {}, function(json) { location.reload(true); });
+  }
+  else {
+    location.reload(true);
+  }
 }
 
 /*
