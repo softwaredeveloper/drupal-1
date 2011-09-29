@@ -182,7 +182,7 @@ function lingotek_node_view($node, $view_mode) {
   global $_lingotek_client, $_lingotek_locale;
 
   if ($node->tnid && $node->tnid != $node->nid && $view_mode == 'full') {
-    if (($cache = cache_get('lingotek_' + $node->nid + '_link')) && !empty($cache->data) && time() < $cache->expire) {
+    if (!lingotek_do_cache() && ($cache = cache_get('lingotek_' + $node->nid + '_link')) && !empty($cache->data) && time() < $cache->expire) {
       $link = $cache->data;
     }
     else {

@@ -54,6 +54,28 @@ function lingotek_get_vaults() {
 }
 
 /*
+ * Get the Lingotek user's current communities
+ */
+function lingotek_get_communities() {
+  global $_lingotek_client;
+
+  $options = array();
+
+  if (!$_lingotek_client->canLogIn()) {
+    return $options;
+  }
+
+  $list_communities = $_lingotek_client->request("listCommunities", array());
+  if ($list_communities->results == "success") {
+    foreach ($list_communities->communities as $community) {
+      $options[$community->id] = t($community->name);
+    }
+  }
+
+  return $options;
+}
+
+/*
  * Get the Lingotek user's phase templates
  */
 function lingotek_get_phase_templates() {
@@ -81,6 +103,22 @@ function lingotek_get_phase_templates() {
 }
 
 /*
+ * Get the Lingotek user's cms key for the community they are currently logged in with
+ */
+function lingotek_get_cms_key() {
+	global $_lingotek_client;
+
+  $output = $_lingotek_client->request("getCMSKey");
+  if ($output->results == "success") {
+  	variable_del('lingotek_password');
+    return $output->cms;
+  }
+  else {
+  	return "";
+  }
+}
+
+/*
  * Get currently supported machine translation engines
  */
 function lingotek_get_machine_translation_engines() {
@@ -89,6 +127,17 @@ function lingotek_get_machine_translation_engines() {
   $engines['google'] = t("Google MT");
   $engines['microsoft'] = t("Microsoft MT");
   return $engines;
+}
+
+/*
+ * Get available synchronization methods for keeping nodes up-to-date
+ */
+function lingotek_get_sync_methods() {
+  $methods = array();
+  $methods[0] = t("Never");
+  $methods[1] = t("Always");
+  $methods[100] = t("100%");
+  return $methods;
 }
 
 /*
@@ -310,4 +359,52 @@ function lingotek_can_log_in() {
   else {
     return t("False");
   }
+}
+
+
+/*
+ * Create a project and return it's id.
+ * @param $name
+ *  Project name being created
+ */
+function lingotek_add_project($name) {
+	global $_lingotek_client;
+	$output = $_lingotek_client->request('addProject', array('projectName' => $name));
+	if ($output->results == "success") {
+		variable_set('lingotek_project', $output->id);
+    return $output->id;
+  }
+}
+
+/*
+ * Create a vault, and return it's id.
+ * @param $name
+ *  Vault name being created
+ */
+function lingotek_add_vault($name) {
+	global $_lingotek_client;
+
+	$output = $_lingotek_client->request('addTMVault', array('tmVaultName' => $name));
+	if ($output->results == "success") {
+		variable_set('lingotek_vault', $output->id);
+    return $output->id;
+  }
+}
+
+/*
+ * Add the current vault to the current project.  It doesn't hurt to call this more than once.
+ */
+function lingotek_add_vault_to_project() {
+	global $_lingotek_client;
+
+	$vault_id = variable_get('lingotek_vault', '');
+	$project_id = variable_get('lingotek_project', '');
+	if ($vault_id != '' && $project_id != '') {
+		$param = array
+		(
+			'project_id' => $project_id,
+			'index_id' => $vault_id
+		);
+		$_lingotek_client->request('addProjectTMVault', $param);
+	}
 }

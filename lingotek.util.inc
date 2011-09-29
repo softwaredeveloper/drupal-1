@@ -108,6 +108,10 @@ function lingotek_language_matching($string) {
  *  default = WATCHDOG_ERROR, watchdog severity
  */
 function lingotek_error($msg, $data = NULL, $depth = 0, $severity = WATCHDOG_ERROR) {
+	if ($severity == WATCHDOG_WARNING && variable_get('lingotek_warning_log', FALSE)) {
+		return;
+	}
+
   $backtrace = debug_backtrace();
   $location = $backtrace[$depth]['file'] . ':' . $backtrace[$depth]['line'];
   $function = $backtrace[$depth + 1]['function'];
@@ -152,4 +156,14 @@ function lingotek_dump($obj) {
   $string = ob_get_contents();
   ob_end_clean();
   return $string;
+}
+
+/**
+ * Returns whether caching is enabled.
+ *
+ * @return
+ *   Boolean value.
+ */
+function lingotek_do_cache() {
+	return variable_get('lingotek_flush_cache', FALSE) && user_access('dev');
 }
