@@ -99,10 +99,10 @@ function lingotek_language_matching($string) {
  * Debug/Trace error logging
  */
 function lingotek_trace($msg, $data = NULL) {
-	if (variable_get('lingotek_trace_log', TRUE)) {
-		return;
-	}
-	lingotek_error($msg, $data, $depth = 1, WATCHDOG_DEBUG);
+  if (variable_get('lingotek_trace_log', TRUE)) {
+    return;
+  }
+  lingotek_error($msg, $data, $depth = 1, WATCHDOG_DEBUG);
 }
 
 /*
@@ -118,9 +118,9 @@ function lingotek_trace($msg, $data = NULL) {
  *  default = WATCHDOG_ERROR, watchdog severity
  */
 function lingotek_error($msg, $data = NULL, $depth = 0, $severity = WATCHDOG_ERROR) {
-	if ($severity == WATCHDOG_WARNING && variable_get('lingotek_warning_log', FALSE)) {
-		return;
-	}
+  if ($severity == WATCHDOG_WARNING && variable_get('lingotek_warning_log', FALSE)) {
+    return;
+  }
 
   $backtrace = debug_backtrace();
   $location = $backtrace[$depth]['file'] . ':' . $backtrace[$depth]['line'];
@@ -175,5 +175,5 @@ function lingotek_dump($obj) {
  *   Boolean value.
  */
 function lingotek_do_cache() {
-	return !(variable_get('lingotek_flush_cache', FALSE) && user_access('lingotek_dev'));
+  return !(variable_get('lingotek_flush_cache', FALSE) && user_access('lingotek_dev'));
 }

@@ -106,15 +106,15 @@ function lingotek_get_phase_templates() {
  * Get the Lingotek user's cms key for the community they are currently logged in with
  */
 function lingotek_get_cms_key() {
-	global $_lingotek_client;
+  global $_lingotek_client;
 
   $output = $_lingotek_client->request("getCMSKey");
   if ($output->results == "success") {
-  	variable_del('lingotek_password');
+    variable_del('lingotek_password');
     return $output->cms;
   }
   else {
-  	return "";
+    return "";
   }
 }
 
@@ -368,10 +368,10 @@ function lingotek_can_log_in() {
  *  Project name being created
  */
 function lingotek_add_project($name) {
-	global $_lingotek_client;
-	$output = $_lingotek_client->request('addProject', array('projectName' => $name));
-	if ($output->results == "success") {
-		variable_set('lingotek_project', $output->id);
+  global $_lingotek_client;
+  $output = $_lingotek_client->request('addProject', array('projectName' => $name));
+  if ($output->results == "success") {
+    variable_set('lingotek_project', $output->id);
     return $output->id;
   }
 }
@@ -382,11 +382,11 @@ function lingotek_add_project($name) {
  *  Vault name being created
  */
 function lingotek_add_vault($name) {
-	global $_lingotek_client;
+  global $_lingotek_client;
 
-	$output = $_lingotek_client->request('addTMVault', array('tmVaultName' => $name));
-	if ($output->results == "success") {
-		variable_set('lingotek_vault', $output->id);
+  $output = $_lingotek_client->request('addTMVault', array('tmVaultName' => $name));
+  if ($output->results == "success") {
+    variable_set('lingotek_vault', $output->id);
     return $output->id;
   }
 }
@@ -395,16 +395,16 @@ function lingotek_add_vault($name) {
  * Add the current vault to the current project.  It doesn't hurt to call this more than once.
  */
 function lingotek_add_vault_to_project() {
-	global $_lingotek_client;
+  global $_lingotek_client;
 
-	$vault_id = variable_get('lingotek_vault', '');
-	$project_id = variable_get('lingotek_project', '');
-	if ($vault_id != '' && $project_id != '') {
-		$param = array
-		(
-			'project_id' => $project_id,
-			'index_id' => $vault_id
-		);
-		$_lingotek_client->request('addProjectTMVault', $param);
-	}
+  $vault_id = variable_get('lingotek_vault', '');
+  $project_id = variable_get('lingotek_project', '');
+  if ($vault_id != '' && $project_id != '') {
+    $param = array
+    (
+      'project_id' => $project_id,
+      'index_id' => $vault_id
+    );
+    $_lingotek_client->request('addProjectTMVault', $param);
+  }
 }
