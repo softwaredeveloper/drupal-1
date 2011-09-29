@@ -69,6 +69,26 @@ function lingotek_menu() {
     'type' => MENU_CALLBACK,
   );
 
+  $items['admin/settings/lingotek/dev'] = array
+  (
+    'title' => 'Lingotek Developer Tools',
+    'access arguments' => array('lingotek_dev'),
+    'description' => 'Developer Tools',
+    'file' => 'lingotek.dev.inc',
+    'page callback' => 'lingotek_dev_page',
+  );
+
+  $items['node/%node/lingotek_dev'] = array
+  (
+    'title' => 'Lingotek Developer Tools',
+    'access arguments' => array('lingotek_dev'),
+    'description' => 'Developer Tools',
+    'file' => 'lingotek.dev.inc',
+    'page callback' => 'lingotek_dev_page',
+    'page arguments' => array(1),
+    'type' => MENU_LOCAL_TASK,
+  );
+
   return $items;
 }
 
@@ -76,7 +96,7 @@ function lingotek_menu() {
  * permissions hook
  */
 function lingotek_perm() {
-  return array('lingotek_content_tab', 'lingotek_administer', 'lingotek_translate', 'lingotek_review_translations', 'lingotek_sync_from_lingotek', 'lingotek_machine_translation', 'lingotek_create_content_options');
+  return array('lingotek_content_tab', 'lingotek_administer', 'lingotek_translate', 'lingotek_review_translations', 'lingotek_sync_from_lingotek', 'lingotek_machine_translation', 'lingotek_create_content_options', 'lingotek_dev');
 }
 
 /*
@@ -182,7 +202,7 @@ function lingotek_node_view($node, $view_mode) {
   global $_lingotek_client, $_lingotek_locale;
 
   if ($node->tnid && $node->tnid != $node->nid && $view_mode == 'full') {
-    if (!lingotek_do_cache() && ($cache = cache_get('lingotek_' + $node->nid + '_link')) && !empty($cache->data) && time() < $cache->expire) {
+    if (lingotek_do_cache() && ($cache = cache_get('lingotek_' + $node->nid + '_link')) && !empty($cache->data) && time() < $cache->expire) {
       $link = $cache->data;
     }
     else {

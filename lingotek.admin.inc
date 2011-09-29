@@ -6,7 +6,7 @@
 
 include_once('lingotek.session.inc');
 
-preg_match('.Revision: (\d+) .', '$Revision: 22494 $', $revision);
+preg_match('.Revision: (\d+) .', '$Revision: 22525 $', $revision);
 $GLOBALS['_version'] = $revision[1];
 
 /*
@@ -342,7 +342,7 @@ function lingotek_admin_form() {
 	  $form['developer_settings'] = array(
 	  	'#type' => 'fieldset',
 	  	'#title' => t('Developer Settings'),
-	  	'#description' => t('Help debug any issues with the module and adds ways to manipulate the module\'s data directly.'), //TODO . ' ' . l(t('(tools)'), 'admin/settings/lingotek/dev'),
+	  	'#description' => t('Help debug any issues with the module and adds ways to manipulate the module\'s data directly.') . ' ' . l(t('(tools)'), 'admin/settings/lingotek/dev'),
 	    '#collapsible' => TRUE,
 		  '#collapsed' => TRUE,
 		  '#group' => 'administrative_settings',
@@ -360,6 +360,13 @@ function lingotek_admin_form() {
 	    '#title' => t('Supress Warnings'),
 	    '#description' => t('This prevents warnings from being sent to watchdog and the web server\'s error logs.'),
 	    '#default_value' => variable_get('lingotek_warning_log', FALSE),
+	  );
+
+	  $form['developer_settings']['lingotek_trace_log'] = array(
+	    '#type' => 'checkbox',
+	    '#title' => t('Supress Trace'),
+	    '#description' => t('This prevents debug messages from being sent to watchdog and the web server\'s error logs.'),
+	    '#default_value' => variable_get('lingotek_trace_log', TRUE),
 	  );
 
 	  $form['developer_settings']['lingotek_flush_cache'] = array(

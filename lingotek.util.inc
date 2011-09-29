@@ -96,6 +96,16 @@ function lingotek_language_matching($string) {
 }
 
 /*
+ * Debug/Trace error logging
+ */
+function lingotek_trace($msg, $data = NULL) {
+	if (variable_get('lingotek_trace_log', TRUE)) {
+		return;
+	}
+	lingotek_error($msg, $data, $depth = 1, WATCHDOG_DEBUG);
+}
+
+/*
  * Error output
  *
  * @param $msg
@@ -165,5 +175,5 @@ function lingotek_dump($obj) {
  *   Boolean value.
  */
 function lingotek_do_cache() {
-	return variable_get('lingotek_flush_cache', FALSE) && user_access('dev');
+	return !(variable_get('lingotek_flush_cache', FALSE) && user_access('lingotek_dev'));
 }
