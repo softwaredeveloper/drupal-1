@@ -4,15 +4,15 @@
  * Lingotek Community Translation Hooks, Added Fields on Node Creation
  */
 
-include_once("lingotek.session.inc");
+include_once('lingotek.session.inc');
 include_once('lingotek.reference.inc');
-include_once("lingotek.util.inc");
-include_once("lingotek.api.inc");
-include_once("lingotek.sync.inc");
-include_once("lingotek.mt.inc");
+include_once('lingotek.util.inc');
+include_once('lingotek.api.inc');
+include_once('lingotek.sync.inc');
+include_once('lingotek.mt.inc');
 
 /*
- * menu hook
+ * hook_menu
  */
 function lingotek_menu() {
   $items = array();
@@ -20,10 +20,10 @@ function lingotek_menu() {
   $items['admin/settings/lingotek'] = array
   (
     'title' => 'Lingotek',
-    'description' => 'Collaborative Translation Settings',
+    'access arguments' => array('lingotek_administer'),
+    'description' => 'Community Translation Settings',
     'file' => 'lingotek.admin.inc',
     'page callback' => 'lingotek_settings_page',
-    'access arguments' => array('lingotek_administer'),
   );
 
   $items['node/%node/lingotek_pm'] = array
@@ -64,8 +64,8 @@ function lingotek_menu() {
   $items['lingotek/mt'] = array
   (
     'access arguments' => array('lingotek_machine_translation'),
-    'file' => 'lingotek.page.inc',
-    'page callback' => 'lingotek_mt_ajax',
+    'file' => 'lingotek.mt.inc',
+    'page callback' => 'lingotek_mt',
     'type' => MENU_CALLBACK,
   );
 
@@ -93,25 +93,14 @@ function lingotek_menu() {
 }
 
 /*
- * permissions hook
+ * hook_permission
  */
 function lingotek_perm() {
   return array('lingotek_content_tab', 'lingotek_administer', 'lingotek_translate', 'lingotek_review_translations', 'lingotek_sync_from_lingotek', 'lingotek_machine_translation', 'lingotek_create_content_options', 'lingotek_dev');
 }
 
 /*
- * flush the queue for machine translation on every page load
- */
-function lingotek_init() {
-  $menu = menu_get_active_trail();
-  //Skip AJAX calls
-  if ("" != $menu[1]['title']) {
-    lingotek_dequeue();
-  }
-}
-
-/*
- * form_alter hook
+ * hook_form_alter
  */
 function lingotek_form_alter(&$form, $form_state, $form_id) {
   switch ($form_id) {
@@ -137,18 +126,6 @@ function lingotek_form_alter(&$form, $form_state, $form_id) {
           );
         }
       }
-  }
-}
-
-/*
- * help hook
- *
- * link to Help Documentation
- */
-function lingotek_help($path, $arg) {
-  switch ($path) {
-    case 'admin/help#lingotek':
-      return t('Please see our DevZone:') . ' ' . l(t('Drupal Integration'), 'http://lingotek.com/support/devzone/drupal-integration');
   }
 }
 
@@ -308,7 +285,7 @@ function lingotek_menu_link_alter(&$item, $menu) {
 }
 
 /*
- * translated_menu_link_alter hook
+ * hook_translated_menu_link_alter
  *
  * Menu Overwriting functionality (Requires the Menu Translation in i18n to be
  * enabled and it's setting enabled within this module)
@@ -328,5 +305,27 @@ function lingotek_translated_menu_link_alter(&$item, $menu) {
       $item['link_title'] = $node->title;
     }
     $item["access"] = TRUE;
+  }
+}
+
+/*
+ * hook_init
+ * flush the queue for machine translation on every page load
+ */
+function lingotek_init() {
+  $menu = menu_get_active_trail();
+  //Skip AJAX calls
+  if ("" != $menu[1]['title']) {
+    lingotek_dequeue();
+  }
+}
+
+/*
+ * hook_help
+ */
+function lingotek_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#lingotek':
+      return t('Please see our DevZone:') . ' ' . l(t('Drupal Integration'), 'http://lingotek.com/support/devzone/drupal-integration');
   }
 }

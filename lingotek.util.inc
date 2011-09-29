@@ -42,7 +42,7 @@ function lingotek_lingonode($nid, $key = "", $value = "") {
         return FALSE;
       }
     }
-    //Insert the specified key and value
+    //Insert/Update the specified key and value
     else {
       //insert or update
       if (lingotek_lingonode($nid, $key) === FALSE) { //Insert
@@ -125,7 +125,7 @@ function lingotek_error($msg, $data = NULL, $depth = 0, $severity = WATCHDOG_ERR
   $backtrace = debug_backtrace();
   $location = $backtrace[$depth]['file'] . ':' . $backtrace[$depth]['line'];
   $function = $backtrace[$depth + 1]['function'];
-  $args = json_encode($backtrace[$depth + 1]['args']);
+  $args = @json_encode($backtrace[$depth + 1]['args']);
 
   $data_output = "";
   if (isset($data)) {

@@ -5,14 +5,14 @@
  */
 
 /*
- * Install and initialize the module
+ * Install the Lingotek module
  */
 function lingotek_install() {
   drupal_install_schema('lingotek');
 }
 
 /*
- * Uninstall and delete settings for the module
+ * Uninstall the Lingotek module
  */
 function lingotek_uninstall() {
   drupal_uninstall_schema('lingotek');
@@ -35,7 +35,7 @@ function lingotek_uninstall() {
 }
 
 /*
- * Schema for the database tables used by the module
+ * Install the database schema for the Lingotek module
  */
 function lingotek_schema() {
   $schema['lingotek'] = array

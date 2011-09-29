@@ -5,6 +5,17 @@
  */
 
 /*
+ * AJAX call to add to the machine translation queue
+ */
+function lingotek_mt($nid) {
+  global $user;
+
+  foreach ($_POST['targets'] as $target) {
+    lingotek_enqueue($user->uid, $nid, $target, $_POST['engine']);
+  }
+}
+
+/*
  * Append to the queue nodes and targets to be machine translated
  */
 function lingotek_enqueue($uid, $nid, $language, $engine) {
@@ -27,8 +38,8 @@ function lingotek_dequeue() {
     }
 
     foreach ($xlf as $nid => $row) {
-      $doc_id = lingotek_lingonode($nid, 'document_id');
       $node = node_load(array('nid' => $nid));
+      $doc_id = lingotek_lingonode($nid, 'document_id');
       $xliff = lingotek_get_xliff($doc_id);
 
       $target_languages = array();
@@ -38,6 +49,7 @@ function lingotek_dequeue() {
       $targets = implode(",", $target_languages);
 
       echo '<textarea style="display:none;" tag="lingotek-mt-xliff" nid="' . $nid . '" doc="' . $doc_id . '" engine="' . $row['engine'] . '" source="' . $node->language . '" targets="' . $targets . '" node="' . $node->title . '">' . $xliff . '</textarea>';
+      lingotek_trace('lingotek_dequeue', array("title" => $node->title, "nid" => $nid, "document_id" => $doc_id, "engine" => $row['engine'], "source" => $node->language, "targets" => $targets));
     }
 
     drupal_add_css(drupal_get_path('module', 'lingotek') . '/style/lingotek.mask.css');

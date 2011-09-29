@@ -207,17 +207,6 @@ function lingotek_summary($source) {
 }
 
 /*
- * AJAX call to add to the machine translation queue
- */
-function lingotek_mt_ajax($nid) {
-  global $user;
-
-  foreach ($_POST['targets'] as $target) {
-    lingotek_enqueue($user->uid, $nid, $target, $_POST['engine']);
-  }
-}
-
-/*
  * Sync the current translations from Lingotek to Drupal for the target node
  *
  * @param $nid

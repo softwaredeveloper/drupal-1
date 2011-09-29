@@ -3,6 +3,7 @@
  * @file
  * Lingotek Reference Utilities
  */
+include_once(getcwd() . '/includes/locale.inc');
 
 /*
  * Language code conversion: drupal => lingotek
@@ -141,7 +142,6 @@ static $_lingotek_locale = array
     'pau' => 'pau_PW',
   'pl' => 'pl_PL',
   'ps' => 'ps_AF',
-  'pt' => 'pt_PT',
   'pt-pt' => 'pt_PT',
   'pt-br' => 'pt_BR',
   'qu' => 'qu_BO',
@@ -209,19 +209,17 @@ $GLOBALS['_lingotek_locale'] = $_lingotek_locale;
  */
 function lingotek_drupal_language($locale) {
   global $_lingotek_locale;
-
-  if ($locale == 'zh_CN') {
-    return 'zh-hans';
-  }
-  elseif ($locale == 'zh_TW') {
-    return 'zh-hant';
-  }
-
   $locale = strtolower(str_replace("_", "-", $locale));
-  if (in_array($locale, array_keys($_lingotek_locale))) {
+  if (array_key_exists($locale, $_lingotek_locale)) {
     return $locale;
   }
   else {
+    if ($locale == "zh-cn") {
+      return "zh-hans";
+    }
+    elseif ($locale == "zh-tw") {
+      return "zh-hant";
+    }
     return substr($locale, 0, strpos($locale, '-'));
   }
 }
@@ -231,7 +229,18 @@ function lingotek_drupal_language($locale) {
  */
 function lingotek_language_name($language) {
   $languages = language_list();
-  return $languages[$language]->name;
+  if (array_key_exists($language, $languages)) {
+    return $languages[$language]->name;
+  }
+  else {
+    $languages = _locale_get_predefined_list();
+    if (array_key_exists(0, $languages)) {
+      return $languages[$language][0];
+    }
+    else {
+      return $language;
+    }
+  }
 }
 
 /*
@@ -239,5 +248,16 @@ function lingotek_language_name($language) {
  */
 function lingotek_language_native($language) {
   $languages = language_list();
-  return $languages[$language]->native;
+  if (array_key_exists($language, $languages)) {
+    return $languages[$language]->native;
+  }
+  else {
+    $languages = _locale_get_predefined_list();
+    if (array_key_exists(1, $languages)) {
+      return $languages[$language][1];
+    }
+    else {
+      return lingotek_language_name($language);
+    }
+  }
 }
