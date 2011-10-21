@@ -244,7 +244,6 @@ function lingotek_get_communities() {
  */
 function lingotek_get_machine_translation_engines() {
   $engines = array();
-  $engines[FALSE] = t("Disabled");
   $engines['google'] = t("Google MT");
   $engines['microsoft'] = t("Microsoft MT");
   return $engines;

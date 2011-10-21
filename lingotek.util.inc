@@ -18,7 +18,15 @@
  *  in the database.  Returns FALSE if no value is found.
  */
 function lingotek_lingonode($nid, $key = "", $value = "") {
-  if (is_numeric($nid) && $nid) {
+  if ($nid == 'all') {
+    $lingo_node = array();
+    $result = db_query('SELECT n.nid, n.lingokey, n.lingovalue FROM {lingotek} n');
+    while ($row = db_fetch_object($result)) {
+      $lingo_node[$row->nid][$row->lingokey] = $row->lingovalue;
+    }
+    return $lingo_node;
+  }
+  else if (is_numeric($nid) && $nid) {
     //Return an array with all of the keys and values.
     if ($key == "") {
       $lingo_node = array();
