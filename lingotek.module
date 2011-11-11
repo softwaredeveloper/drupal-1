@@ -302,9 +302,8 @@ function lingotek_translated_menu_link_alter(&$item, $menu) {
     $node = lingotek_get_node($language->prefix, $nid);
     if ($node && $node->title != "") {
       $item['href'] = str_replace("%", $node->nid, $item['router_path']);
-      $item['link_title'] = $node->title;
+      $item['link_title'] = check_plain($node->title);
     }
-    $item["access"] = TRUE;
   }
 }
 

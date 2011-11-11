@@ -148,7 +148,7 @@ function lingotek_summary($source) {
     //Don't link to itself.
     if ($node->nid != $current_nid) {
       //Let's create the link manually so that Drupal doesn't overwrite the url to the current locale:
-      $title = "<a href=\"" . url('node/'. $node->nid, array('language' => $list[$node->language])) . "\">" . $node->title . "</a>";
+      $title = "<a href=\"" . url('node/'. $node->nid, array('language' => $list[$node->language])) . "\">" . check_plain($node->title) . "</a>";
     }
 
     $published = ($node->status) ? "Yes" : "No";
@@ -164,7 +164,7 @@ function lingotek_summary($source) {
   //Let's keep the order consistent on the table.
   sort($rows);
 
-  $title = "<a href=\"" . url('node/'. $source->nid, array('language' => $list[$source->language])) . "\">" . $source->title . "</a>";
+  $title = "<a href=\"" . url('node/'. $source->nid, array('language' => $list[$source->language])) . "\">" . check_plain($source->title) . "</a>";
   drupal_set_title(t('Collaborative Translations of') . ' ' . $title, PASS_THROUGH);
 
   $download = "";
