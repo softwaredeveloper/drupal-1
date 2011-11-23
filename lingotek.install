@@ -38,8 +38,7 @@ function lingotek_uninstall() {
  * Install the database schema for the Lingotek module
  */
 function lingotek_schema() {
-  $schema['lingotek'] = array
-  (
+  $schema['lingotek'] = array(
     'description' => 'Table for storing node related data.',
     'fields' => array
     (
@@ -74,8 +73,7 @@ function lingotek_schema() {
       'lingokey',
     ),
   );
-  $schema['lingotek_mt_queue'] = array
-  (
+  $schema['lingotek_mt_queue'] = array(
     'description' => 'Table for storing a Machine Translation queue.',
     'fields' => array
     (
@@ -123,8 +121,7 @@ function lingotek_schema() {
  */
 function lingotek_update_6200() {
   variable_del('lingotek_languages');
-  $schema['lingotek_mt_queue'] = array
-  (
+  $schema['lingotek_mt_queue'] = array(
     'description' => 'Table for storing a Machine Translation queue.',
     'fields' => array
     (
@@ -178,3 +175,4 @@ function lingotek_update_6201() {
   }
   return array();
 }
+

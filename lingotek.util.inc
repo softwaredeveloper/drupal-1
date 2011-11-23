@@ -26,7 +26,7 @@ function lingotek_lingonode($nid, $key = "", $value = "") {
     }
     return $lingo_node;
   }
-  else if (is_numeric($nid) && $nid) {
+  elseif (is_numeric($nid) && $nid) {
     //Return an array with all of the keys and values.
     if ($key == "") {
       $lingo_node = array();
@@ -53,10 +53,12 @@ function lingotek_lingonode($nid, $key = "", $value = "") {
     //Insert/Update the specified key and value
     else {
       //insert or update
-      if (lingotek_lingonode($nid, $key) === FALSE) { //Insert
+      // Insert
+      if (lingotek_lingonode($nid, $key) === FALSE) {
         db_query("INSERT INTO {lingotek} VALUES(%d, '%s', '%s')", $nid, $key, $value);
       }
-      else { //Update
+      // Update
+      else {
         db_query("UPDATE {lingotek} SET lingovalue = '%s' WHERE nid = %d AND lingokey = '%s'", $value, $nid, $key);
       }
     }
@@ -92,12 +94,16 @@ function lingotek_language_matching($string) {
   switch ($string) {
     case 'pt_BR':
       return "pt-br";
+
     case 'pt_PT':
       return "pt-pt";
+
     case 'zh_CN':
       return "zh-hans";
+
     case 'zh_TW':
       return "zh-hant";
+
     default:
       return preg_replace("/_.*$/", "", $string);
   }
@@ -131,24 +137,23 @@ function lingotek_error($msg, $data = NULL, $depth = 0, $severity = WATCHDOG_ERR
   }
 
   $backtrace = debug_backtrace();
-  $location = $backtrace[$depth]['file'] . ':' . $backtrace[$depth]['line'];
-  $function = $backtrace[$depth + 1]['function'];
-  $args = @json_encode($backtrace[$depth + 1]['args']);
+  $location  = $backtrace[$depth]['file'] . ':' . $backtrace[$depth]['line'];
+  $function  = $backtrace[$depth + 1]['function'];
+  $args      = @json_encode($backtrace[$depth + 1]['args']);
 
   $data_output = "";
   if (isset($data)) {
     $data_output = json_encode($data);
   }
 
-  watchdog
-  (
+  watchdog(
     'lingotek',
     '<span style="word-break: break-all;"><b>MESSAGE:</b> %msg <br /><b>DATA:</b> %data <br /><b>FILE:</b> %location<br /><b>FUNCTION:</b>%function<br /><b>ARGS:</b> %args</span>',
     array
     (
       '%msg' => $msg,
       '%data' => $data_output,
-      '%location' =>  $location,
+      '%location' => $location,
       '%function' => $function,
       '%args' => $args,
     ),
@@ -183,5 +188,6 @@ function lingotek_dump($obj) {
  *   Boolean value.
  */
 function lingotek_do_cache() {
-  return !(variable_get('lingotek_flush_cache', FALSE) && user_access('lingotek_dev'));
+  return !(variable_get('lingotek_flush_cache', FALSE) && user_access('lingotek developer features'));
 }
+

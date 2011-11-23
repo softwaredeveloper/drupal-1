@@ -3,7 +3,6 @@
  * @file
  * Developer Utilities
  */
-
 function lingotek_dev_page($node = NULL) {
   $nid = '';
   if (isset($node)) {
@@ -62,8 +61,7 @@ function lingotek_dev_form($ignore, $param) {
     $rs = lingotek_lingonode('all');
     foreach ($rs as $nid => $entry) {
       foreach ($entry as $key => $value) {
-        $row = array
-        (
+        $row = array(
           $nid,
           $key,
           $value,
@@ -76,8 +74,7 @@ function lingotek_dev_form($ignore, $param) {
     $rs = lingotek_lingonode($nid);
     $header = array(t('Key'), t('Value'));
     foreach ($rs as $key => $value) {
-      $row = array
-      (
+      $row = array(
         $key,
         $value,
       );
@@ -86,8 +83,7 @@ function lingotek_dev_form($ignore, $param) {
   }
   $table = theme('table', $header, $rows);
 
-  $form['data']['value'] = array
-  (
+  $form['data']['value'] = array(
     '#type' => 'item',
     '#description' => $table,
   );
@@ -95,10 +91,10 @@ function lingotek_dev_form($ignore, $param) {
   return $form;
 }
 
-
 function lingotek_dev_submit($form) {
-  $nid = intval($form['dev']['nid']['#value']);
-  $key = $form['dev']['key']['#value'];
+  $nid   = intval($form['dev']['nid']['#value']);
+  $key   = $form['dev']['key']['#value'];
   $value = $form['dev']['value']['#value'];
   drupal_set_message(t('Results:') . ' ' . lingotek_dump(lingotek_lingonode($nid, $key, $value)));
 }
+

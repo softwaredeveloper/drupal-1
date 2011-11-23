@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Handles api calls, logging in and logging out of LingoTek
@@ -21,13 +22,12 @@ class LingotekSession {
 
   /*
    * Constructor
-   */
-  function __construct() {
-    $this->url = variable_get('lingotek_url', 'http://myaccount.lingotek.com') . "/lingopoint/api";
+   */ function __construct() {
+    $this->url       = variable_get('lingotek_url', 'http://myaccount.lingotek.com') . "/lingopoint/api";
     $this->community = variable_get('lingotek_community', '');
-    $this->login_id = variable_get('lingotek_login_id', '');
-    $this->key = variable_get('lingotek_login_key', '');
-    $this->password = variable_get('lingotek_password', '');
+    $this->login_id  = variable_get('lingotek_login_id', '');
+    $this->key       = variable_get('lingotek_login_key', '');
+    $this->password  = variable_get('lingotek_password', '');
   }
 
   /*
@@ -45,6 +45,7 @@ class LingotekSession {
   /*
    * Determines if the user is currently logged in to the lingotek platform
    */
+
   public function isLoggedIn() {
     return $this->logged_in;
   }
@@ -53,6 +54,7 @@ class LingotekSession {
   /*
    * Determines if the user can log in and if so, logs in
    */
+
   public function canLogIn() {
     if (!$this->isLoggedIn()) {
       $this->login();
@@ -76,6 +78,7 @@ class LingotekSession {
    * @return
    *  object representing the json returned by the api
    */
+
   public function request($api, $params = NULL, $data = NULL, $returnJson = TRUE) {
     if (!$this->isLoggedIn() && !in_array($api, $this->sessionless)) {
       $this->login();
@@ -88,8 +91,7 @@ class LingotekSession {
 
     $this->headers["Content-Type"] = "application/x-www-form-urlencoded;";
 
-    $response = drupal_http_request
-    (
+    $response = drupal_http_request(
       $this->url . "/" . $api,
       $this->headers,
       'POST',
@@ -99,8 +101,7 @@ class LingotekSession {
     if ($returnJson) {
       $json = json_decode($response->data);
       if ($json->results != "success") {
-        lingotek_error
-        (
+        lingotek_error(
           'API ' . $api . ' FAILED',
           array
           (
@@ -128,6 +129,7 @@ class LingotekSession {
    * @return
    *  location of the file
    */
+
   public function download($api, $params) {
     $result = $this->request($api, $params, NULL, FALSE);
 
@@ -139,8 +141,7 @@ class LingotekSession {
 
     $json = json_decode($result->data);
     if (isset($json->results)) {
-      lingotek_error
-      (
+      lingotek_error(
         'Error downloading document',
         array
         (
@@ -182,6 +183,7 @@ class LingotekSession {
   /*
    * Hash the key for logging in for this user.
    */
+
   public static function create_mac($json_msg) {
     $resp = base64_encode(hash_hmac('sha256', $json_msg, pack('H*', variable_get('lingotek_login_key', '')), TRUE));
     return ($resp);
@@ -193,11 +195,11 @@ class LingotekSession {
   /*
    * login to the lingotek platform
    */
+
   private function login($version = "3.11", $xml = FALSE) {
 
     if ($this->key == "") {
-      $params = array
-      (
+      $params = array(
         'userLogin' => $this->login_id,
         'password' => $this->password,
         'version' => $version,
@@ -206,16 +208,14 @@ class LingotekSession {
       $login = 'login';
     }
     else {
-      $arr = array
-      (
+      $arr = array(
         'community' => $this->community,
         'login_id' => $this->login_id,
         'time' => time(),
       );
       $json_str = json_encode($arr);
 
-      $params = array
-      (
+      $params = array(
         "auth_json" => $json_str,
         "hmac" => LingotekSession::create_mac($json_str),
         "version" => $version,
@@ -228,17 +228,16 @@ class LingotekSession {
     $response = json_decode($data->data);
 
     if ($response && $response->results == "success") {
-      $this->headers = array("Cookie" =>  $data->headers['Set-Cookie']);
+      $this->headers = array("Cookie" => $data->headers['Set-Cookie']);
       $this->logged_in = TRUE;
     }
     else {
       //Delete the key so they can use a password to log in again (otherwise the password fails every time since it defaults to using the key)
-      if(!isset($data->error)) {
+      if (!isset($data->error)) {
         variable_del("lingotek_login_key");
       }
       $this->logged_in = FALSE;
-      lingotek_error
-      (
+      lingotek_error(
         "Unable to log in",
         array
         (
@@ -255,6 +254,7 @@ class LingotekSession {
   /*
    * logout from the lingotek platform
    */
+
   private function logout() {
     $json = $this->request('logout');
     if ($json->results == "success") {
@@ -266,3 +266,4 @@ class LingotekSession {
     }
   }
 }
+

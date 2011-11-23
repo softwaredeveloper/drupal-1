@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Displays progress of the community translation
@@ -75,13 +76,13 @@ function lingotek_summary($source) {
       continue;
     }
 
-    $node = node_load(array('nid' => $node->nid));
-    $operation = "";
+    $node          = node_load(array('nid' => $node->nid));
+    $operation     = "";
     $current_phase = 0;
-    $progress = 0;
-    $order = 0;
-    $native = $list[lingotek_language_matching($node->language)]->native;
-    $check = "";
+    $progress      = 0;
+    $order         = 0;
+    $native        = $list[lingotek_language_matching($node->language)]->native;
+    $check         = "";
 
     //Current Phase Progress: (phases must be returned in order, or this will break)
     $language_phases = $phases[$node->language];
@@ -97,12 +98,12 @@ function lingotek_summary($source) {
       }
 
       $num_phases = count($language_phases);
-      $label = "";
-      $phase_id = -1;
+      $label      = "";
+      $phase_id   = -1;
       if ($current_phase != $num_phases) {
         $this_phase = $language_phases[$order];
-        $label = t($this_phase->name);
-        $phase_id = $this_phase->id;
+        $label      = t($this_phase->name);
+        $phase_id   = $this_phase->id;
       }
 
       $percent = lingotek_lingonode($node->nid, 'percent_complete');
@@ -119,13 +120,13 @@ function lingotek_summary($source) {
       else {
         //First phase is always a translation phase, so give users with translator permissions the link
         if ($current_phase == 0) {
-          if (user_access('lingotek_translate')) {
+          if (user_access('translate content')) {
             $operation = lingotek_workbench_phase_link($doc_id, $phase_id, $label);
           }
         }
         //All other phases are review phases, so give users with review permissions the link
         else {
-          if (user_access('lingotek_review_translations')) {
+          if (user_access('review translations')) {
             $operation = lingotek_workbench_phase_link($doc_id, $phase_id, $label);
           }
         }
@@ -139,7 +140,7 @@ function lingotek_summary($source) {
       continue;
     }
 
-    if (user_access('lingotek_machine_translation') || user_access('lingotek_sync_from_lingotek')) {
+    if (user_access('machine translation') || user_access('flush translations from lingotek')) {
       $check = '<input tag="lingotek_pm_row" type="checkbox" language="' . $node->language . '" />';
     }
 
@@ -148,7 +149,7 @@ function lingotek_summary($source) {
     //Don't link to itself.
     if ($node->nid != $current_nid) {
       //Let's create the link manually so that Drupal doesn't overwrite the url to the current locale:
-      $title = "<a href=\"" . url('node/'. $node->nid, array('language' => $list[$node->language])) . "\">" . check_plain($node->title) . "</a>";
+      $title = "<a href=\"" . url('node/' . $node->nid, array('language' => $list[$node->language])) . "\">" . check_plain($node->title) . "</a>";
     }
 
     $published = ($node->status) ? "Yes" : "No";
@@ -164,19 +165,19 @@ function lingotek_summary($source) {
   //Let's keep the order consistent on the table.
   sort($rows);
 
-  $title = "<a href=\"" . url('node/'. $source->nid, array('language' => $list[$source->language])) . "\">" . check_plain($source->title) . "</a>";
+  $title = "<a href=\"" . url('node/' . $source->nid, array('language' => $list[$source->language])) . "\">" . check_plain($source->title) . "</a>";
   drupal_set_title(t('Collaborative Translations of') . ' ' . $title, PASS_THROUGH);
 
   $download = "";
-  if (user_access('lingotek_sync_from_lingotek')) {
+  if (user_access('flush translations from lingotek')) {
     $download = '<input type="button" value="Sync" onclick="lingotek.pm.update();" />';
   }
   $mt = "";
-  if (user_access('lingotek_machine_translation')) {
+  if (user_access('machine translation')) {
     $available_engines = lingotek_get_machine_translation_engines();
-    $enabled_engines = variable_get('lingotek_available_mt_options', array_keys($available_engines));
-    $engines = array();
-    $select = "";
+    $enabled_engines   = variable_get('lingotek_available_mt_options', array_keys($available_engines));
+    $engines           = array();
+    $select            = "";
     foreach ($enabled_engines as $engine) {
       $engines[$engine] = $available_engines[$engine];
     }
@@ -198,7 +199,7 @@ function lingotek_summary($source) {
       $mt .= '<input id="lingotek-mt-button" type="button" onclick="lingotek.pm.mt();" value="' . t('Machine Translate') . '" />';
     }
   }
-  if (user_access('lingotek_sync_from_lingotek') || user_access('lingotek_machine_translation')) {
+  if (user_access('flush translations from lingotek') || user_access('machine translation')) {
     array_unshift($header, '<input type="checkbox" onclick="lingotek.pm.toggle_checkboxes(this);" />');
   }
   $table = theme('table', $header, $rows);

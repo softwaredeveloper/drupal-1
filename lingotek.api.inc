@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Call the Lingotek APIs
@@ -33,9 +34,9 @@ function lingotek_can_log_in() {
 function lingotek_download_document($source_node, $target_node, $save = TRUE) {
   global $_lingotek_client, $_lingotek_locale;
 
-  $document_id = lingotek_lingonode($source_node->nid, 'document_id');
+  $document_id     = lingotek_lingonode($source_node->nid, 'document_id');
   $target_language = $_lingotek_locale[$target_node->language];
-  $params = array('documentId' => $document_id, 'targetLanguage' => $target_language);
+  $params          = array('documentId' => $document_id, 'targetLanguage' => $target_language);
 
   if (!isset($target_language) || !isset($document_id)) {
     lingotek_error('downloadDocument was not called because it was missing parameters', $params);
@@ -47,19 +48,20 @@ function lingotek_download_document($source_node, $target_node, $save = TRUE) {
   try {
     $xml = new SimpleXMLElement($text);
   }
-  catch (Exception $e) {
+  catch(Exception$e) {
     lingotek_error("downloadDocument FAILED", array('xml' => $text, 'error' => $e->getMessage()));
   }
 
   //Update the Node details to show the translated document
-  $titles = $xml->xpath("title");
-  $bodies = $xml->xpath("body");
+  $titles             = $xml->xpath("title");
+  $bodies             = $xml->xpath("body");
   $target_node->title = decode_entities(lingotek_xml_decode($titles[0]));
 
   $target_node->body = lingotek_xml_decode($bodies[0]);
   $target_node->teaser = node_teaser($target_node->body, $source_node->format);
 
-  $target_node->status = $source_node->status; //Publish the node if the source was published
+  // Publish the node if the source was published
+  $target_node->status = $source_node->status;
   $target_node->promote = $source_node->promote;
   $target_node->sticky = $source_node->sticky;
   $target_node->tnid = $source_node->nid;
@@ -88,8 +90,7 @@ function lingotek_download_document($source_node, $target_node, $save = TRUE) {
  */
 function lingotek_save_segment($source_text, $target_text, $target_language, $doc_id) {
   global $_lingotek_client;
-  $param = array
-  (
+  $param = array(
     "sourceText" => $source_text,
     "targetText" => $target_text,
     "targetLanguage" => $target_language,
@@ -140,10 +141,9 @@ function lingotek_add_vault_to_project() {
   $vault_id = variable_get('lingotek_vault', '');
   $project_id = variable_get('lingotek_project', '');
   if ($vault_id != '' && $project_id != '') {
-    $param = array
-    (
+    $param = array(
       'project_id' => $project_id,
-      'index_id' => $vault_id
+      'index_id' => $vault_id,
     );
     $_lingotek_client->request('addProjectTMVault', $param);
   }
@@ -279,7 +279,7 @@ function lingotek_get_node($lang_prefix, $tnid) {
 function lingotek_get_phase_templates() {
   global $_lingotek_client;
 
-  $options = array();
+  $options    = array();
   $options[1] = t("Translation Only");
   $options[2] = t("Translation + 1 review");
   $options[3] = t("Translation + 2 reviews");
@@ -326,9 +326,9 @@ function lingotek_get_projects() {
  * Get available synchronization methods for keeping nodes up-to-date
  */
 function lingotek_get_sync_methods() {
-  $methods = array();
-  $methods[0] = t("Never");
-  $methods[1] = t("Always");
+  $methods      = array();
+  $methods[0]   = t("Never");
+  $methods[1]   = t("Always");
   $methods[100] = t("100%");
   return $methods;
 }
@@ -373,20 +373,19 @@ function lingotek_get_vaults() {
 function lingotek_workbench_phase_link($document_id, $phase_id, $label) {
   global $user;
 
-  $arr = array
-  (
+  $arr = array(
     'community' => variable_get('lingotek_community', ''),
     'id' => $user->name,
     'time' => time(),
     'document' => $document_id,
-    'phase' => $phase_id
+    'phase' => $phase_id,
   );
 
-  $mode = 'cmsWorkbench.action';
+  $mode     = 'cmsWorkbench.action';
   $json_str = json_encode($arr);
-  $path = variable_get('lingotek_url', '') . "/lingopoint/portal/" . $mode . "?auth_json=" . urlencode($json_str) . "&hmac=" . urlencode(LingotekSession::create_mac($json_str));
+  $path     = variable_get('lingotek_url', '') . "/lingopoint/portal/" . $mode . "?auth_json=" . urlencode($json_str) . "&hmac=" . urlencode(LingotekSession::create_mac($json_str));
 
-  if (variable_get('lingotek_use_lightbox', FALSE)) {
+  if (module_exists('lightbox2') && variable_get('lingotek_use_lightbox', FALSE)) {
     return l(t($label), $path, array('attributes' => array('rel' => 'lightframe')));
   }
   else {

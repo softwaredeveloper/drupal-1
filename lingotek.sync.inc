@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Update the Drupal Nodes with new information from the Lingotek Collaborative
@@ -35,8 +36,7 @@ function lingotek_update_nodes($node) {
   if (!lingotek_lingonode($node->nid, 'document_id')) {
     $xml = "<?xml version=\"1.0\"?><contents><title><![CDATA[" . $node->title . "]]></title><body><![CDATA[" . $node->body . "]]></body></contents>";
 
-    $param = array
-    (
+    $param = array(
       'projectId' => variable_get('lingotek_project', ''),
       'documentName' => $node->title,
       'documentDesc' => $node->title,
@@ -78,7 +78,8 @@ function lingotek_update_nodes($node) {
 
           lingotek_download_document($node, $target_node, TRUE);
 
-          $target_node->status = 1; //Published now;
+          //Published now;
+          $target_node->status = 1;
           $target_node->promote = $node->promote;
           $target_node->sticky = $node->sticky;
           $target_node->comment = $node->comment;
@@ -96,7 +97,6 @@ function lingotek_update_nodes($node) {
         if (lingotek_lingonode($target_node->nid, 'percent_complete') != $target->percentComplete) {
           lingotek_lingonode($target_node->nid, 'percent_complete', $target->percentComplete);
         }
-
       }
       else {
         //This can be caused when the administrator deletes a language system-wide.
@@ -110,8 +110,7 @@ function lingotek_update_nodes($node) {
 
     //If translations are missing, let's add them:
     foreach ($missing_languages as $lang) {
-      $add_translation_target = $_lingotek_client->request
-      (
+      $add_translation_target = $_lingotek_client->request(
         "addTranslationTarget",
         array
         (
@@ -163,3 +162,4 @@ function lingotek_update_nodes($node) {
     node_save($node);
   }
 }
+

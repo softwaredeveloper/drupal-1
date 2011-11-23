@@ -4,9 +4,9 @@
  * Administrative Settings for the module
  */
 
-include_once('lingotek.session.inc');
+include_once 'lingotek.session.inc';
 
-preg_match('.Revision: (\d+) .', '$Revision: 22938 $', $revision);
+preg_match('.Revision: (\d+) .', '$Revision: 23368 $', $revision);
 $GLOBALS['_version'] = $revision[1];
 
 /*
@@ -24,9 +24,9 @@ function lingotek_settings_page() {
 function lingotek_administrative_settings_form() {
   global $_lingotek_client;
 
-  $login = variable_get('lingotek_login_id', '');
-  $key = variable_get('lingotek_login_key', '');
-  $password = variable_get('lingotek_password', '');
+  $login     = variable_get('lingotek_login_id', '');
+  $key       = variable_get('lingotek_login_key', '');
+  $password  = variable_get('lingotek_password', '');
   $community = variable_get('lingotek_community', '');
 
   $wizard = "full";
@@ -35,17 +35,20 @@ function lingotek_administrative_settings_form() {
     if ($community == '') {
       $communities = lingotek_get_communities();
       $num = count($communities);
-      if ($num == 0) { //User doesn't have any communities.  This should rarely happen.
+      //User doesn't have any communities.  This should rarely happen.
+      if ($num == 0) {
         $wizard = "signup";
         drupal_set_message(t("Your user isn't part of any community.  Please correct this with Lingotek."), 'error');
       }
-      elseif ($num == 1) { //The user is done authenticating because the community can be selected automatically since there is only one.
+      //The user is done authenticating because the community can be selected automatically since there is only one.
+      elseif ($num == 1) {
         $wizard = "full";
         reset($communities);
         variable_set('lingotek_community', key($communities));
         variable_set('lingotek_login_key', lingotek_get_cms_key());
       }
-      else { //User needs to decide what community because there is more than one
+      //User needs to decide what community because there is more than one
+      else {
         $wizard = "community";
       }
     }
@@ -63,12 +66,15 @@ function lingotek_administrative_settings_form() {
   }
 
   switch ($wizard) {
-    case "signup": //First signin
+    case "signup":
       $form = lingotek_signup_form();
       break;
-    case "community": //Get Community, this step could be skipped if only a member of a single community.
+
+    case "community":
+    	//Get Community, this step could be skipped if only a member of a single community.
       $form = lingotek_community_form();
       break;
+
     case "full":
     default:
       $form = lingotek_admin_form();
@@ -105,7 +111,7 @@ function lingotek_signup_form() {
       'Lingotek Module Version 6.22.@revision<br />Please login using your existing Lingotek ID, or click !link if you need to create a new account.',
       array(
         '@revision' => $_version,
-        '!link' => l(t("here"), variable_get('lingotek_url', 'http://myaccount.lingotek.com') . "/lingopoint/portal/communitySignup.action")
+        '!link' => l(t("here"), variable_get('lingotek_url', 'http://myaccount.lingotek.com') . "/lingopoint/portal/communitySignup.action"),
       )
     ),
     '#collapsible' => TRUE,
@@ -128,44 +134,44 @@ function lingotek_signup_form() {
   );
 
   //Advanced settings
-    $form['advanced'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Advanced Settings'),
-      '#description' => t('These settings will only be changed in rare cases.  If your user is not a Community Admin on the Lingotek platform, then you will need to authenticate here.'),
-      '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
-      '#group' => 'administrative_settings',
+  $form['advanced'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Advanced Settings'),
+    '#description' => t('These settings will only be changed in rare cases.  If your user is not a Community Admin on the Lingotek platform, then you will need to authenticate here.'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#group' => 'administrative_settings',
+  );
+  $form['advanced']['lingotek_url'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Lingotek URL'),
+    '#description' => t('URL pointing to the Lingotek instance to be used.'),
+    '#default_value' => variable_get('lingotek_url', 'http://myaccount.lingotek.com'),
+  );
+  $key = variable_get('lingotek_login_key', '');
+  if ($key == '') {
+    drupal_set_message(t("Your Lingotek user does not have Community Admin rights.  The translation workbench will be unreachable for your translators unless you have a Login Key supplied from a Community Admin."), 'error');
+    $form['auth']['lingotek_password'] = array(
+      '#type' => 'password',
+      '#title' => t('Password'),
+      '#description' => t('Password to use authenticating.'),
+      '#attributes' => array('value' => variable_get('lingotek_password', '')),
     );
-    $form['advanced']['lingotek_url'] = array(
+  }
+  else {
+    $form['auth']['lingotek_login_key'] = array(
       '#type' => 'textfield',
-      '#title' => t('Lingotek URL'),
-      '#description' => t('URL pointing to the Lingotek instance to be used.'),
-      '#default_value' => variable_get('lingotek_url', 'http://myaccount.lingotek.com'),
+      '#title' => t('Login Key'),
+      '#description' => t('Key to use authenticating.  The key must be generated by the Lingotek system.  Your password was used once to fetch this key and subsequently deleted.'),
+      '#default_value' => $key,
     );
-    $key = variable_get('lingotek_login_key', '');
-    if ($key == '') {
-    	drupal_set_message(t("Your Lingotek user does not have Community Admin rights.  The translation workbench will be unreachable for your translators unless you have a Login Key supplied from a Community Admin."), 'error');
-		  $form['auth']['lingotek_password'] = array(
-		    '#type' => 'password',
-		    '#title' => t('Password'),
-		    '#description' => t('Password to use authenticating.'),
-		    '#attributes' => array('value' => variable_get('lingotek_password', '')),
-		  );
-    }
-    else {
-		  $form['auth']['lingotek_login_key'] = array(
-		    '#type' => 'textfield',
-		    '#title' => t('Login Key'),
-		    '#description' => t('Key to use authenticating.  The key must be generated by the Lingotek system.  Your password was used once to fetch this key and subsequently deleted.'),
-		    '#default_value' => $key,
-		  );
-		}
-    $form['advanced']['lingotek_community'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Community ID'),
-      '#description' => t('Community in which the project exists and translations will be made.'),
-      '#default_value' => variable_get('lingotek_community', ''),
-    );
+  }
+  $form['advanced']['lingotek_community'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Community ID'),
+    '#description' => t('Community in which the project exists and translations will be made.'),
+    '#default_value' => variable_get('lingotek_community', ''),
+  );
 
   return $form;
 }
@@ -175,254 +181,243 @@ function lingotek_admin_form() {
   $site = variable_get('site_name', "Drupal Site");
 
   //Dashboard Settings
-    $form['dash'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Dashboard Settings'),
-      '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
-      '#group' => 'administrative_settings',
+  $form['dash'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Dashboard Settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#group' => 'administrative_settings',
+  );
+
+  //If projects are available from Lingotek because the above login credentials worked, then display them in a drop list instead of a text box for the Id
+  if ($_lingotek_client->canLogIn()) {
+    $projects = lingotek_get_projects();
+    $id = variable_get('lingotek_project', '');
+
+    // No project id set, project deleted, or community changed to one without that project.  Try to find the Drupal project
+    if ($id == '' || !array_key_exists($id, $projects)) {
+      $id = array_search($site, $projects);
+      // Setup a default Drupal project
+      if ($id === False) {
+        $id = lingotek_add_project($site);
+        $projects = lingotek_get_projects();
+      }
+      // Assign to an existing Drupal project
+      else {
+        variable_set('lingotek_project', $id);
+      }
+    }
+
+    $form['dash']['lingotek_project'] = array(
+      '#type' => 'select',
+      '#title' => t('Project'),
+      '#options' => $projects,
+      '#description' => t('Project under which the translations will exist.'),
+      '#default_value' => $id,
     );
+  }
+  else {
+    $form['dash']['#description'] = 'Save your Authentication Settings first.  Then you can select projects and vaults by name instead of ID.';
+    $form['dash']['lingotek_project'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Project ID'),
+      '#description' => t('Project id under which the translations will exist.'),
+      '#default_value' => variable_get('lingotek_project', ''),
+    );
+  }
 
-    //If projects are available from Lingotek because the above login credentials worked, then display them in a drop list instead of a text box for the Id
-    if ($_lingotek_client->canLogIn()) {
-      $projects = lingotek_get_projects();
-      $id = variable_get('lingotek_project', '');
+  $warning = t('If you want to use Machine Translation, then don\'t use the public vault and you need to add the selected vault to the project within the Lingotek Dashboard.');
 
-      if ($id == '' || !array_key_exists($id, $projects)) { //No project id set, project deleted, or community changed to one without that project.  Try to find the Drupal project
-        $id = array_search($site, $projects);
-        if ($id === False) { //Setup a default Drupal project
-          $id = lingotek_add_project($site);
-          $projects = lingotek_get_projects();
-        }
-        else { //Assign to an existing Drupal project
-          variable_set('lingotek_project', $id);
-        }
+  //If vaults are available from Lingotek because the above login credentials worked, then display them in a drop list instead of a text box for the Id
+  if ($_lingotek_client->canLogIn()) {
+    $vaults = lingotek_get_vaults();
+    $id = variable_get('lingotek_vault', '');
+
+    // No vault id set. (Vaults are not community specific, so we don't have to test this like we did the project)  Try to find the Drupal vault
+    if ($id == '') {
+      $id = array_search($site, $vaults);
+      // Setup a default Drupal vault
+      if ($id === FALSE) {
+        $id = lingotek_add_vault($site);
+        $vaults = lingotek_get_vaults();
       }
-
-      $form['dash']['lingotek_project'] = array(
-        '#type' => 'select',
-        '#title' => t('Project'),
-        '#options' => $projects,
-        '#description' => t('Project under which the translations will exist.'),
-        '#default_value' => $id,
-      );
-    }
-    else {
-      $form['dash']['#description'] ='Save your Authentication Settings first.  Then you can select projects and vaults by name instead of ID.';
-      $form['dash']['lingotek_project'] = array(
-        '#type' => 'textfield',
-        '#title' => t('Project ID'),
-        '#description' => t('Project id under which the translations will exist.'),
-        '#default_value' => variable_get('lingotek_project', ''),
-      );
-    }
-
-    $warning = t('If you want to use Machine Translation, then don\'t use the public vault and you need to add the selected vault to the project within the Lingotek Dashboard.');
-
-    //If vaults are available from Lingotek because the above login credentials worked, then display them in a drop list instead of a text box for the Id
-    if ($_lingotek_client->canLogIn()) {
-      $vaults = lingotek_get_vaults();
-      $id = variable_get('lingotek_vault', '');
-
-      if ($id == '') { //No vault id set. (Vaults are not community specific, so we don't have to test this like we did the project)  Try to find the Drupal vault
-        $id = array_search($site, $vaults);
-        if ($id === FALSE) { //Setup a default Drupal vault
-          $id = lingotek_add_vault($site);
-          $vaults = lingotek_get_vaults();
-        }
-        else { //Assign to an existing Drupal project
-          variable_set('lingotek_vault', $id);
-        }
+      // Assign to an existing Drupal project
+      else {
+        variable_set('lingotek_vault', $id);
       }
-      lingotek_add_vault_to_project();
+    }
+    lingotek_add_vault_to_project();
 
-      $form['dash']['lingotek_vault'] = array(
-        '#type' => 'select',
-        '#title' => t('Vault'),
-        '#options' => $vaults,
-        '#description' => t('Vault where translations are saved. %warning', array('%warning' => $warning)),
-        '#default_value' => $id,
-      );
-    }
-    else {
-      $form['dash']['lingotek_vault'] = array(
-        '#type' => 'textfield',
-        '#title' => t('Vault ID'),
-        '#description' => t('Vault id under which the translations will exist. (1 is typically the public vault.) %warning%', array('%warning%' => $warning)),
-        '#default_value' => variable_get('lingotek_vault', 1),
-      );
-    }
+    $form['dash']['lingotek_vault'] = array(
+      '#type' => 'select',
+      '#title' => t('Vault'),
+      '#options' => $vaults,
+      '#description' => t('Vault where translations are saved. %warning', array('%warning' => $warning)),
+      '#default_value' => $id,
+    );
+  }
+  else {
+    $form['dash']['lingotek_vault'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Vault ID'),
+      '#description' => t('Vault id under which the translations will exist. (1 is typically the public vault.) %warning%', array('%warning%' => $warning)),
+      '#default_value' => variable_get('lingotek_vault', 1),
+    );
+  }
 
   //Drupal Settings
-    $form['drupal'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Drupal Settings'),
-      '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
-      '#group' => 'administrative_settings',
-    );
+  $form['drupal'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Drupal Settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#group' => 'administrative_settings',
+  );
 
 
-    //Display enabled languages for the neutral language setting.
-    $options = array();
-    foreach (language_list() as $language) {
-      if ($language->enabled) {
-        $options[$language->language] = $language->native;
-      }
+  //Display enabled languages for the neutral language setting.
+  $options = array();
+  foreach (language_list() as $language) {
+    if ($language->enabled) {
+      $options[$language->language] = $language->native;
     }
+  }
 
-    $form['drupal']['lingotek_neutral_language'] = array(
-      '#type' => 'select',
-      '#title' => t('Neutral Language'),
-      '#description' => t('Use this language as the source language when an article is language neutral.'),
-      '#options' => $options,
-      '#default_value' => variable_get('lingotek_neutral_language', 'en'),
-    );
+  $form['drupal']['lingotek_neutral_language'] = array(
+    '#type' => 'select',
+    '#title' => t('Neutral Language'),
+    '#description' => t('Use this language as the source language when an article is language neutral.'),
+    '#options' => $options,
+    '#default_value' => variable_get('lingotek_neutral_language', 'en'),
+  );
 
-    $form['drupal']['lingotek_menu_overwrite'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Overwrite Menus'),
-      '#description' => t('Use this to help map menus to nodes point to the correct currently selected language.  This feature requires the Menu Translation module in i18n.'),
-      '#default_value' => variable_get('lingotek_menu_overwrite', FALSE),
-    );
+  $form['drupal']['lingotek_menu_overwrite'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Overwrite Menus'),
+    '#description' => t('Use this to help map menus to nodes point to the correct currently selected language.  This feature requires the Menu Translation module in i18n.'),
+    '#default_value' => variable_get('lingotek_menu_overwrite', FALSE),
+  );
 
-    if (variable_get('lingotek_menu_overwrite', FALSE)) {
-      db_query("UPDATE {system} SET weight = 1 WHERE name = 'i18nmenu'");
-    }
-    else {
-      db_query("UPDATE {system} SET weight = 0 WHERE name = 'i18nmenu'");
-    }
+  if (variable_get('lingotek_menu_overwrite', FALSE)) {
+    db_query("UPDATE {system} SET weight = 1 WHERE name = 'i18nmenu'");
+  }
+  else {
+    db_query("UPDATE {system} SET weight = 0 WHERE name = 'i18nmenu'");
+  }
 
-    //This setting may not work fluidly with the current version of Lingotek's workbench.
-    $form['drupal']['lingotek_use_lightbox'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Enable Lightbox2'),
-      '#description' => t('Use Lightbox2 to display LingoDex.  Disable this if you want it to load in another window.  This feature requires the Lightbox2 module.'),
-      '#default_value' => variable_get('lingotek_use_lightbox', FALSE),
-    );
+  //This setting may not work fluidly with the current version of Lingotek's workbench.
+  $form['drupal']['lingotek_use_lightbox'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable Lightbox2'),
+    '#description' => t('Use Lightbox2 to display LingoDex.  Disable this if you want it to load in another window.  This feature requires the Lightbox2 module.'),
+    '#default_value' => variable_get('lingotek_use_lightbox', FALSE),
+    '#disabled' => !module_exists('lightbox2'),
+  );
 
   //Options
-    $options = array();
-    $options[FALSE] = t("Disabled");
-    $options[TRUE] = t("Enabled");
+  $options        = array();
+  $options[FALSE] = t("Disabled");
+  $options[TRUE]  = t("Enabled");
 
   //Default Settings
-    $form['defaults'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Page Default Settings'),
-      '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
-      '#group' => 'administrative_settings',
-    );
+  $form['defaults'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Page Default Settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#group' => 'administrative_settings',
+  );
 
-    $form['defaults']['lingotek_phase_template'] = array(
-      '#type' => 'select',
-      '#title' => t('Phase Template (Workflow)'),
-      '#description' => t('Use this phase template as the default when creating new pages.'),
-      '#options' => lingotek_get_phase_templates(),
-      '#default_value' => variable_get('lingotek_phase_template', ''),
-    );
+  $form['defaults']['lingotek_phase_template'] = array(
+    '#type' => 'select',
+    '#title' => t('Phase Template (Workflow)'),
+    '#description' => t('Use this phase template as the default when creating new pages.'),
+    '#options' => lingotek_get_phase_templates(),
+    '#default_value' => variable_get('lingotek_phase_template', ''),
+  );
 
-/*  //TODO: These options are only in Drupal 7 so far.
-    $form['defaults']['lingotek_sync'] = array(
-      '#type' => 'radios',
-      '#title' => t('Synchronization Method'),
-      '#description' => t('Use this synchronization method as the default when creating new pages.'),
-      '#options' => lingotek_get_sync_methods(),
-      '#default_value' => variable_get('lingotek_sync', 0),
-    );
-
-    $form['defaults']['lingotek_use_source'] = array(
-      '#type' => 'select',
-      '#title' => t('Include source text in synchronization.'),
-      '#description' => t('Should the synchronization include the source language when a translation isn\'t provided?'),
-      '#options' => $options,
-      '#default_value' => variable_get('lingotek_use_source', TRUE),
-    );
-*/
-
-    $engines = lingotek_get_machine_translation_engines();
-    $form['defaults']['lingotek_available_mt_options'] = array(
-      '#type' => 'checkboxes',
-      '#title' => t('Available Machine Translation Options'),
-      '#description' => t('Choose which engines are available to the page creator.'),
-      '#options' => $engines,
-      '#default_value' => variable_get('lingotek_available_mt_options', array_keys($engines)),
-    );
+  $engines = lingotek_get_machine_translation_engines();
+  $form['defaults']['lingotek_available_mt_options'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Available Machine Translation Options'),
+    '#description' => t('Choose which engines are available to the page creator.'),
+    '#options' => $engines,
+    '#default_value' => variable_get('lingotek_available_mt_options', array_keys($engines)),
+  );
 
   //Developer Settings
-    $form['developer_settings'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Developer Settings'),
-      '#description' => t('Help debug any issues with the module and adds ways to manipulate the module\'s data directly.') . ' ' . l(t('(tools)'), 'admin/settings/lingotek/dev'),
-      '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
-      '#group' => 'administrative_settings',
-    );
+  $form['developer_settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Developer Settings'),
+    '#description' => t('Help debug any issues with the module and adds ways to manipulate the module\'s data directly.') . ' ' . l(t('(tools)'), 'admin/settings/lingotek/dev'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#group' => 'administrative_settings',
+  );
 
-    $form['developer_settings']['lingotek_error_log'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Enable Error Log'),
-      '#description' => t('This prints errors and warnings to the web server\'s error logs in addition to adding them to watchdog.'),
-      '#default_value' => variable_get('lingotek_error_log', FALSE),
-    );
+  $form['developer_settings']['lingotek_error_log'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable Error Log'),
+    '#description' => t('This prints errors and warnings to the web server\'s error logs in addition to adding them to watchdog.'),
+    '#default_value' => variable_get('lingotek_error_log', FALSE),
+  );
 
-    $form['developer_settings']['lingotek_warning_log'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Supress Warnings'),
-      '#description' => t('This prevents warnings from being sent to watchdog and the web server\'s error logs.'),
-      '#default_value' => variable_get('lingotek_warning_log', FALSE),
-    );
+  $form['developer_settings']['lingotek_warning_log'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Supress Warnings'),
+    '#description' => t('This prevents warnings from being sent to watchdog and the web server\'s error logs.'),
+    '#default_value' => variable_get('lingotek_warning_log', FALSE),
+  );
 
-    $form['developer_settings']['lingotek_trace_log'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Supress Trace'),
-      '#description' => t('This prevents debug messages from being sent to watchdog and the web server\'s error logs.'),
-      '#default_value' => variable_get('lingotek_trace_log', TRUE),
-    );
+  $form['developer_settings']['lingotek_trace_log'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Supress Trace'),
+    '#description' => t('This prevents debug messages from being sent to watchdog and the web server\'s error logs.'),
+    '#default_value' => variable_get('lingotek_trace_log', TRUE),
+  );
 
-    $form['developer_settings']['lingotek_flush_cache'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Never cache'),
-      '#description' => t('Skips caching so you can test easier.  This avoids frequent polling of fresh data from Lingotek.  Only those with Developer permissions will have caching disabled.'),
-      '#default_value' => variable_get('lingotek_flush_cache', FALSE),
-    );
+  $form['developer_settings']['lingotek_flush_cache'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Never cache'),
+    '#description' => t('Skips caching so you can test easier.  This avoids frequent polling of fresh data from Lingotek.  Only those with Developer permissions will have caching disabled.'),
+    '#default_value' => variable_get('lingotek_flush_cache', FALSE),
+  );
 
   //Authentication Settings
-    $form['auth'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Authentication Settings'),
-      '#description' => t('Lingotek Module Version 6.22.@revision', array('@revision' => $_version)),
-      '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
-      '#group' => 'administrative_settings',
-    );
+  $form['auth'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Authentication Settings'),
+    '#description' => t('Lingotek Module Version 6.22.@revision', array('@revision' => $_version)),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#group' => 'administrative_settings',
+  );
 
-    $form['auth']['lingotek_login_id'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Login ID'),
-      '#description' => t('During flow of control, sometimes a Dashboard login id is not available.  In such instances, this login id will be used.  The only restriction is that the login id must exist in the Dashboard.'),
-      '#default_value' => variable_get('lingotek_login_id', ''),
-    );
-    $form['auth']['lingotek_login_key'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Login Key'),
-      '#description' => t('Key to use authenticating.  The key must be generated by the Lingotek system.  Your password was used once to fetch this key and subsequently deleted.'),
-      '#default_value' => variable_get('lingotek_login_key', ''),
-    );
-    $form['auth']['lingotek_url'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Lingotek URL'),
-      '#description' => t('URL pointing to the Lingotek instance to be used.'),
-      '#default_value' => variable_get('lingotek_url', 'http://myaccount.lingotek.com'),
-    );
-    $form['auth']['lingotek_community'] = array(
-      '#type' => 'select',
-      '#title' => t('Community'),
-      '#description' => t('Community in which the project exists and translations will be made.'),
-      '#options' => lingotek_get_communities(),
-      '#default_value' => variable_get('lingotek_community', ''),
-    );
+  $form['auth']['lingotek_login_id'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Login ID'),
+    '#description' => t('During flow of control, sometimes a Dashboard login id is not available.  In such instances, this login id will be used.  The only restriction is that the login id must exist in the Dashboard.'),
+    '#default_value' => variable_get('lingotek_login_id', ''),
+  );
+  $form['auth']['lingotek_login_key'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Login Key'),
+    '#description' => t('Key to use authenticating.  The key must be generated by the Lingotek system.  Your password was used once to fetch this key and subsequently deleted.'),
+    '#default_value' => variable_get('lingotek_login_key', ''),
+  );
+  $form['auth']['lingotek_url'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Lingotek URL'),
+    '#description' => t('URL pointing to the Lingotek instance to be used.'),
+    '#default_value' => variable_get('lingotek_url', 'http://myaccount.lingotek.com'),
+  );
+  $form['auth']['lingotek_community'] = array(
+    '#type' => 'select',
+    '#title' => t('Community'),
+    '#description' => t('Community in which the project exists and translations will be made.'),
+    '#options' => lingotek_get_communities(),
+    '#default_value' => variable_get('lingotek_community', ''),
+  );
 
-    return $form;
+  return $form;
 }

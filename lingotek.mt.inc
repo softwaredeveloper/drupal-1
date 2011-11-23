@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Machine Translation
@@ -38,9 +39,9 @@ function lingotek_dequeue() {
     }
 
     foreach ($xlf as $nid => $row) {
-      $node = node_load(array('nid' => $nid));
+      $node   = node_load(array('nid' => $nid));
       $doc_id = lingotek_lingonode($nid, 'document_id');
-      $xliff = lingotek_get_xliff($doc_id);
+      $xliff  = lingotek_get_xliff($doc_id);
 
       $target_languages = array();
       foreach (array_keys($row['targets']) as $lang) {
@@ -78,10 +79,10 @@ function lingotek_mt_all() {
   global $user;
 
   //all nodes minus already init nodes:
-    //init nodes
+  //init nodes
 
   //all nodes - run mt
-    //lingotek_enqueue($user->uid, $nid, $language, $engine);
+  //lingotek_enqueue($user->uid, $nid, $language, $engine);
 }
 
 /*
@@ -91,3 +92,4 @@ function lingotek_mt_save_segment() {
   $result = lingotek_save_segment($_POST['sourceText'], $_POST['targetText'], $_POST['targetLanguage'], $_POST['document']);
   drupal_json(array('status' => 0, 'result' => $result));
 }
+
