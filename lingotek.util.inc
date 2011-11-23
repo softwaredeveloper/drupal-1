@@ -22,7 +22,7 @@ function lingotek_lingonode($nid, $key = "", $value = "") {
     $lingo_node = array();
     $result = db_query('SELECT n.nid, n.lingokey, n.lingovalue FROM {lingotek} n');
     while ($row = db_fetch_object($result)) {
-      $lingo_node[$row->nid][$row->lingokey] = $row->lingovalue;
+      $lingo_node[$row->nid][$row->lingokey] = check_plain($row->lingovalue);
     }
     return $lingo_node;
   }
@@ -33,7 +33,7 @@ function lingotek_lingonode($nid, $key = "", $value = "") {
 
       $result = db_query('SELECT n.lingokey, n.lingovalue FROM {lingotek} n WHERE n.nid = %d', $nid);
       while ($row = db_fetch_object($result)) {
-        $lingo_node[$row->lingokey] = $row->lingovalue;
+        $lingo_node[$row->lingokey] = check_plain($row->lingovalue);
       }
 
       return $lingo_node;
@@ -44,7 +44,7 @@ function lingotek_lingonode($nid, $key = "", $value = "") {
       $row = db_fetch_object($result);
 
       if ($row) {
-        return $row->lingovalue;
+        return check_plain($row->lingovalue);
       }
       else {
         return FALSE;
@@ -190,4 +190,3 @@ function lingotek_dump($obj) {
 function lingotek_do_cache() {
   return !(variable_get('lingotek_flush_cache', FALSE) && user_access('lingotek developer features'));
 }
-

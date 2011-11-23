@@ -45,12 +45,12 @@ function lingotek_dequeue() {
 
       $target_languages = array();
       foreach (array_keys($row['targets']) as $lang) {
-        array_push($target_languages, $_lingotek_locale[$lang]);
+        array_push($target_languages, $_lingotek_locale[check_plain($lang)]);
       }
       $targets = implode(",", $target_languages);
 
-      echo '<textarea style="display:none;" tag="lingotek-mt-xliff" nid="' . $nid . '" doc="' . $doc_id . '" engine="' . $row['engine'] . '" source="' . $node->language . '" targets="' . $targets . '" node="' . $node->title . '">' . $xliff . '</textarea>';
-      lingotek_trace('lingotek_dequeue', array("title" => $node->title, "nid" => $nid, "document_id" => $doc_id, "engine" => $row['engine'], "source" => $node->language, "targets" => $targets));
+      echo '<textarea style="display:none;" tag="lingotek-mt-xliff" nid="' . $nid . '" doc="' . $doc_id . '" engine="' . check_plain($row['engine']) . '" source="' . $node->language . '" targets="' . $targets . '" node="' . $node->title . '">' . $xliff . '</textarea>';
+      lingotek_trace('lingotek_dequeue', array("title" => $node->title, "nid" => $nid, "document_id" => $doc_id, "engine" => check_plain($row['engine']), "source" => $node->language, "targets" => $targets));
     }
 
     drupal_add_css(drupal_get_path('module', 'lingotek') . '/style/lingotek.mask.css');
@@ -92,4 +92,3 @@ function lingotek_mt_save_segment() {
   $result = lingotek_save_segment($_POST['sourceText'], $_POST['targetText'], $_POST['targetLanguage'], $_POST['document']);
   drupal_json(array('status' => 0, 'result' => $result));
 }
-
