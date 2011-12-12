@@ -162,4 +162,3 @@ function lingotek_update_nodes($node) {
     node_save($node);
   }
 }
-

@@ -188,5 +188,17 @@ function lingotek_dump($obj) {
  *   Boolean value.
  */
 function lingotek_do_cache() {
-  return !(variable_get('lingotek_flush_cache', FALSE) && user_access('lingotek developer features'));
+  return !(variable_get('lingotek_flush_cache', FALSE) && user_access('access access lingotek developer features'));
+}
+
+function lingotek_event_begin($node) {
+	$result = $node->tnid == $node->nid;
+	//error_log("lingotek_event_begin: " . $result);
+	return $result;
+}
+
+function lingotek_event_complete($node) {
+	$result = lingotek_lingonode($node->nid, 'percent_complete') == 100;
+	//error_log("lingotek_event_complete: " . $result);
+	return $result;
 }

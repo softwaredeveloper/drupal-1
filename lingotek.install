@@ -175,4 +175,3 @@ function lingotek_update_6201() {
   }
   return array();
 }
-

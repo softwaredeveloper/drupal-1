@@ -6,13 +6,13 @@
 
 include_once 'lingotek.session.inc';
 
-preg_match('.Revision: (\d+) .', '$Revision: 23369 $', $revision);
+preg_match('.Revision: (\d+) .', '$Revision: 23831 $', $revision);
 $GLOBALS['_version'] = $revision[1];
 
 /*
  * Implementation of hook_settings_page
  *
- * Get the form for the administration page
+ * Get the form for the view lingotek administration page
  */
 function lingotek_settings_page() {
   return drupal_get_form('lingotek_administrative_settings_form');

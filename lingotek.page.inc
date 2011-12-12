@@ -140,7 +140,7 @@ function lingotek_summary($source) {
       continue;
     }
 
-    if (user_access('machine translation') || user_access('flush translations from lingotek')) {
+    if (user_access('run machine translation') || user_access('flush translations from lingotek')) {
       $check = '<input tag="lingotek_pm_row" type="checkbox" language="' . $node->language . '" />';
     }
 
@@ -173,7 +173,7 @@ function lingotek_summary($source) {
     $download = '<input type="button" value="Sync" onclick="lingotek.pm.update();" />';
   }
   $mt = "";
-  if (user_access('machine translation')) {
+  if (user_access('run machine translation')) {
     $available_engines = lingotek_get_machine_translation_engines();
     $enabled_engines   = variable_get('lingotek_available_mt_options', array_keys($available_engines));
     $engines           = array();
@@ -199,7 +199,7 @@ function lingotek_summary($source) {
       $mt .= '<input id="lingotek-mt-button" type="button" onclick="lingotek.pm.mt();" value="' . t('Machine Translate') . '" />';
     }
   }
-  if (user_access('flush translations from lingotek') || user_access('machine translation')) {
+  if (user_access('flush translations from lingotek') || user_access('run machine translation')) {
     array_unshift($header, '<input type="checkbox" onclick="lingotek.pm.toggle_checkboxes(this);" />');
   }
   $table = theme('table', $header, $rows);

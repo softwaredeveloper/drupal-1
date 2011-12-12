@@ -36,7 +36,7 @@ function lingotek_download_document($source_node, $target_node, $save = TRUE) {
 
   $document_id     = lingotek_lingonode($source_node->nid, 'document_id');
   $target_language = $_lingotek_locale[$target_node->language];
-  $params          = array('documentId' => $document_id, 'targetLanguage' => $target_language);
+  $params          = array('documentId' => $document_id, 'targetLanguage' => $target_language, 'useSource' => 'TRUE');
 
   if (!isset($target_language) || !isset($document_id)) {
     lingotek_error('downloadDocument was not called because it was missing parameters', $params);
@@ -56,7 +56,6 @@ function lingotek_download_document($source_node, $target_node, $save = TRUE) {
   $titles             = $xml->xpath("title");
   $bodies             = $xml->xpath("body");
   $target_node->title = decode_entities(lingotek_xml_decode($titles[0]));
-
   $target_node->body = lingotek_xml_decode($bodies[0]);
   $target_node->teaser = node_teaser($target_node->body, $source_node->format);
 
@@ -67,6 +66,9 @@ function lingotek_download_document($source_node, $target_node, $save = TRUE) {
   $target_node->tnid = $source_node->nid;
 
   if ($save) {
+  	if (!isset($target_node->vid)) {
+			$target_node->vid = $target_node->nid;
+		}
     node_save($target_node);
   }
 }

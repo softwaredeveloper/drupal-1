@@ -49,8 +49,8 @@ function lingotek_dequeue() {
       }
       $targets = implode(",", $target_languages);
 
-      echo '<textarea style="display:none;" tag="lingotek-mt-xliff" nid="' . $nid . '" doc="' . $doc_id . '" engine="' . check_plain($row['engine']) . '" source="' . $node->language . '" targets="' . $targets . '" node="' . $node->title . '">' . $xliff . '</textarea>';
-      lingotek_trace('lingotek_dequeue', array("title" => $node->title, "nid" => $nid, "document_id" => $doc_id, "engine" => check_plain($row['engine']), "source" => $node->language, "targets" => $targets));
+      echo '<textarea style="display:none;" tag="lingotek-mt-xliff" nid="' . $nid . '" doc="' . $doc_id . '" engine="' . check_plain($row['engine']) . '" source="' . $node->language . '" targets="' . $targets . '" node="' . filter_xss($node->title) . '">' . $xliff . '</textarea>';
+      lingotek_trace('lingotek_dequeue', array("title" => filter_xss($node->title), "nid" => $nid, "document_id" => $doc_id, "engine" => check_plain($row['engine']), "source" => $node->language, "targets" => $targets, 'xliff' => $xliff));
     }
 
     drupal_add_css(drupal_get_path('module', 'lingotek') . '/style/lingotek.mask.css');
