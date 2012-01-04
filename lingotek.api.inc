@@ -66,9 +66,9 @@ function lingotek_download_document($source_node, $target_node, $save = TRUE) {
   $target_node->tnid = $source_node->nid;
 
   if ($save) {
-  	if (!isset($target_node->vid)) {
-			$target_node->vid = $target_node->nid;
-		}
+    if (!isset($target_node->vid)) {
+      $target_node->vid = $target_node->nid;
+    }
     node_save($target_node);
   }
 }

@@ -192,17 +192,16 @@ function lingotek_do_cache() {
 }
 
 function lingotek_event_begin($node) {
-	$result = $node->tnid == $node->nid;
-	return $result;
+  return TRUE; //lingotek_lingonode($node->nid, 'document_id');
 }
 
 function lingotek_event_complete($node) {
-	$result = FALSE;
-	if (!lingotek_lingonode($node->nid, 'finished')) {
-		$result = lingotek_lingonode($node->nid, 'percent_complete') == "100";
-		if ($result) {
-			lingotek_lingonode($node->nid, 'finished', TRUE);
-		}
-	}
-	return $result;
+  $result = FALSE;
+  if (!lingotek_lingonode($node->nid, 'finished')) {
+    $result = lingotek_lingonode($node->nid, 'percent_complete') == "100";
+    if ($result) {
+      lingotek_lingonode($node->nid, 'finished', TRUE);
+    }
+  }
+  return $result;
 }
