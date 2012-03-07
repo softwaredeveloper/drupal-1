@@ -4,3 +4,4 @@ core = "6.x"
 dependencies[] = locale
 dependencies[] = translation
 php = "5.2"
+version = 6.22.$Revision: 25159 $
