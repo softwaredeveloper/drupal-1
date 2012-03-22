@@ -133,7 +133,7 @@ class LingotekSession {
   public function download($api, $params) {
     $result = $this->request($api, $params, NULL, FALSE);
 
-    $tmpFile = tempnam("/tmp", "lingotek");
+    $tmpFile = tempnam(file_directory_temp(), "lingotek");
     $fp = fopen($tmpFile, 'w');
 
     fwrite($fp, $result->data);
@@ -173,6 +173,7 @@ class LingotekSession {
       }
     }
     fclose($file);
+    unlink($tmpFile);
 
     return $text;
   }
