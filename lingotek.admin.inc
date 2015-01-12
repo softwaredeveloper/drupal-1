@@ -80,6 +80,8 @@ function lingotek_label_compare($a, $b) {
  */
 function lingotek_admin_entity_bundle_profiles_form($form, &$form_state, $entity_type,  $show_fieldset = FALSE) {
 
+  drupal_add_js('misc/collapse.js');
+
   $setup_complete = (!lingotek_is_config_missing());
   $entity_type_info = entity_get_info($entity_type);
   $bundles = $entity_type_info['bundles'];
@@ -165,6 +167,9 @@ function lingotek_admin_entity_bundle_profiles_form($form, &$form_state, $entity
       );
     }
 
+    $languages = lingotek_get_target_locales();
+    $bundle['collapsible_label'] = lingotek_get_language_specific_labels($entity_type, $bundle, $languages);
+
     if ($translation_mode['#markup'] == 'Fixed' || $translation_mode['#markup'] == 'No') {
       continue;
     }
@@ -211,10 +216,12 @@ function lingotek_admin_entity_bundle_profiles_form($form, &$form_state, $entity
 
 function lingotek_node_settings_row_profiles($bundle_name, $entity_profiles, $entity_type, $profiles_options, $setup_complete, $config_handled) {
   $default_profile = $setup_complete ? LingotekSync::PROFILE_DISABLED : 0;
+  $inherit_profile = LingotekSync::PROFILE_INHERIT;
   // Disable automatic profile as the default for comments during setup
   if ($entity_type == 'comment') {
     $default_profile = LingotekSync::PROFILE_DISABLED;
   }
+  $languages = lingotek_get_target_locales(FALSE);
   $profiles = array();
   if ($config_handled) {
     $profiles['profile_' . $bundle_name] = array(
@@ -240,6 +247,29 @@ function lingotek_node_settings_row_profiles($bundle_name, $entity_profiles, $en
         'class' => array('field'),
       ),
     );
+
+    // add the 'inherit' option after writing the main profile box
+    $profiles_options[LingotekSync::PROFILE_INHERIT] = '(use default profile for ' . $bundle_name . ')';
+    $profiles['profile_overrides'] = array(
+      '#type' => 'fieldset',
+      '#id' => 'profile_override__' . $bundle_name,
+      '#states' => array(
+        'invisible' => array(':input["something"]' => array('collapsed' => FALSE)),
+      ),
+    );
+    foreach ($languages as $language) {
+      $profiles['profile_overrides'][$bundle_name . '_' . $language->lingotek_locale] = array(
+        '#title' => $language->name . ' Source',
+        '#type' => 'select',
+        '#options' => $profiles_options,
+        '#value' => isset($entity_profiles[$entity_type][$bundle_name . '__' . $language->lingotek_locale]) ? $entity_profiles[$entity_type][$bundle_name . '__' . $language->lingotek_locale] : LingotekSync::PROFILE_INHERIT,
+        '#attributes' => array(
+          'id' => array('edit-form-item-profile-' . $bundle_name . '__' . $language->lingotek_locale),
+          'name' => 'profile_' . $bundle_name . '__' . $language->lingotek_locale,
+          'class' => array('field'),
+        ),
+      );
+    }
   }
 
   return $profiles;
@@ -401,7 +431,7 @@ function lingotek_get_translation_mode($bundle) {
 function lingotek_node_settings_row($entity_type, $bundle, $profiles, $fields, $entity_specifics) {
   if ($entity_type == 'node') {
     $row = array(
-      array('data' => $bundle['label'], 'width' => '20%'),
+      array('data' => $bundle['collapsible_label'], 'width' => '20%'),
       array('data' => drupal_render($profiles)),
       array('data' => drupal_render($entity_specifics['oneoffs']), 'style' => 'text-align:center'),
       array('data' => drupal_render($fields), 'width' => '65%'),
@@ -423,7 +453,6 @@ function lingotek_node_settings_row($entity_type, $bundle, $profiles, $fields, $
       array('data' => drupal_render($fields), 'width' => '65%'),
     );
   }
-
   return $row;
 }
 
@@ -1677,7 +1706,6 @@ function lingotek_admin_profile_manage($profile_id) {
     print ajax_render($commands);
     drupal_exit();
   }
-
   print ajax_render($output);
 }
 
@@ -1697,6 +1725,9 @@ function lingotek_admin_profile_form($form, &$form_state, $show_fieldset = FALSE
   $is_custom_profile_id = $profile_id >= $first_custom_id;
 
   $show_advanced = $account->showAdvanced();
+
+  $download_translations_title = t('Download Translations Automatically');
+  $download_translations_desc = t('When enabled, completed translations will automatically be downloaded from Lingotek.<br/>When disabled, you are required to manually download translations by clicking the "Download" button on the Translations tab.');
 
   //$form['#action'] = url('admin/settings/lingotek/settings', array('fragment' => 'ltk-profiles'));
   $form['defaults']['profile_id'] = array(
@@ -1727,9 +1758,9 @@ function lingotek_admin_profile_form($form, &$form_state, $show_fieldset = FALSE
   // Download
   $form['defaults']['sync_method'] = array(
     '#type' => 'checkbox',
-    '#title' => t('Download Translations Automatically'),
+    '#title' => $download_translations_title,
     '#default_value' => $form_state['values']['sync_method'],
-    '#description' => t('When enabled, completed translations will automatically be downloaded from Lingotek.<br/>When disabled, you are required to manually download translations by clicking the "Download" button on the Translations tab.'),
+    '#description' => $download_translations_desc,
     '#disabled' => $is_custom_profile_id ? FALSE : TRUE,
   );
 
@@ -1898,6 +1929,46 @@ function lingotek_admin_profile_form($form, &$form_state, $show_fieldset = FALSE
       '#default_value' => isset($form_state['values']['vault_id']) ? $form_state['values']['vault_id'] : $current_vault_id,
     );
   }
+
+  // TARGET-LANGUAGE OVERRIDES
+  $form['defaults']['language_overrides_label'] = array(
+    '#type' => 'markup',
+    '#markup' => '<h3>' . t('Target Languages') . '</h3><hr />',
+  );
+  $languages = lingotek_get_target_locales(FALSE);
+  $form['defaults']['language_overrides'] = array();
+  $settings_options = array(
+    LINGO
+  );
+  foreach ($languages as $language) {
+    $form['defaults']['language_override'][$language->lingotek_locale] = array(
+      '#title' => $language->name,
+      '#type' => 'fieldset',
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+      '#id' => 'language_override__' . $language->lingotek_locale,
+    );
+
+    $form['defaults']['language_override'][$language->lingotek_locale]['settings'] = array(
+      '#type' => 'select',
+      '#options' => $,
+      '#description' => t('The default Translation Memory Vault where translations are saved.'),
+      '#default_value' => isset($form_state['values']['vault_id']) ? $form_state['values']['vault_id'] : $current_vault_id,
+    );
+
+    $auto_download = $form_state['values']['language_override'][$language->lingotek_locale]['auto_download'] ? $form_state['values']['language_override'][$language->lingotek_locale]['auto_download'] : '';
+    $form['defaults']['language_override'][$language->lingotek_locale]['auto_download'] = array(
+      '#type' => 'checkbox',
+      '#title' => $download_translations_title,
+      '#default_value' => $auto_download,
+      '#description' => $download_translations_desc,
+    );
+
+    $form['defaults']['language_override'][$language->lingotek_locale]['workflow'] = array(
+
+    );
+  }
+
 
   $form['defaults']['save'] = array(
     '#type' => 'submit',
@@ -2551,4 +2622,30 @@ function lingotek_handle_advanced_xml_upgrade($form, $form_state) {
 
 function lingotek_get_tab_id($entity_type) {
   return 'ltk-' . str_replace(' ', '-', $entity_type);
+}
+
+function lingotek_get_language_specific_labels($entity_type, $bundle, $languages) {
+  $label = array(
+    '#type' => 'fieldset',
+    '#title' => $bundle['label'],
+    '#tree' => TRUE,
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#attributes' => array(
+      'class' => array(
+        'collapsible',
+        'collapsed',
+      ),
+    ),
+  );
+  foreach ($languages as $k => $v) {
+    $label[$k] = array(
+      '#type' => 'markup',
+      '#markup' => '<div>' . $v . '&nbsp;source</div>',
+      //'#type' => 'checkbox',
+      //'#title' => $v,
+      //'#default_value' => FALSE,
+    );
+  }
+  return $label;
 }
