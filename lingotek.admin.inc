@@ -1938,7 +1938,9 @@ function lingotek_admin_profile_form($form, &$form_state, $show_fieldset = FALSE
   $languages = lingotek_get_target_locales(FALSE);
   $form['defaults']['language_overrides'] = array();
   $settings_options = array(
-    LINGO
+    LingotekSync::PROFILE_INHERIT => 'Use default settings',
+    LingotekSync::PROFILE_CUSTOM => 'Use custom settings',
+    LingotekSync::PROFILE_DISABLED => 'Disabled',
   );
   foreach ($languages as $language) {
     $form['defaults']['language_override'][$language->lingotek_locale] = array(
@@ -1951,7 +1953,7 @@ function lingotek_admin_profile_form($form, &$form_state, $show_fieldset = FALSE
 
     $form['defaults']['language_override'][$language->lingotek_locale]['settings'] = array(
       '#type' => 'select',
-      '#options' => $,
+      '#options' => $settings_options,
       '#description' => t('The default Translation Memory Vault where translations are saved.'),
       '#default_value' => isset($form_state['values']['vault_id']) ? $form_state['values']['vault_id'] : $current_vault_id,
     );
