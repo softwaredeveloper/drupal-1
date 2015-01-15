@@ -167,7 +167,7 @@ function lingotek_admin_entity_bundle_profiles_form($form, &$form_state, $entity
       );
     }
 
-    $languages = lingotek_get_target_locales();
+    $languages = lingotek_get_target_locales(FALSE);
     $bundle['collapsible_label'] = lingotek_get_language_specific_labels($entity_type, $bundle, $languages);
 
     if ($translation_mode['#markup'] == 'Fixed' || $translation_mode['#markup'] == 'No') {
@@ -2638,15 +2638,13 @@ function lingotek_get_language_specific_labels($entity_type, $bundle, $languages
         'collapsible',
         'collapsed',
       ),
+      'style' => 'border: none;',
     ),
   );
   foreach ($languages as $k => $v) {
     $label[$k] = array(
       '#type' => 'markup',
-      '#markup' => '<div>' . $v . '&nbsp;source</div>',
-      //'#type' => 'checkbox',
-      //'#title' => $v,
-      //'#default_value' => FALSE,
+      '#markup' => '<div style="float: none;">' . $v->native . '&nbsp;(source)</div>',
     );
   }
   return $label;
