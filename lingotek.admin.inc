@@ -237,6 +237,9 @@ function lingotek_node_settings_row_profiles($bundle_name, $entity_profiles, $en
     );
   }
   else {
+    // add the 'inherit' option after writing the main profile box
+    $profiles_options[LingotekSync::PROFILE_INHERIT] = '(use default profile for ' . $bundle_name . ')';
+
     $profiles['profile_' . $bundle_name] = array(
       '#type' => 'select',
       '#options' => $profiles_options,
@@ -248,18 +251,19 @@ function lingotek_node_settings_row_profiles($bundle_name, $entity_profiles, $en
       ),
     );
 
-    // add the 'inherit' option after writing the main profile box
-    $profiles_options[LingotekSync::PROFILE_INHERIT] = '(use default profile for ' . $bundle_name . ')';
     $profiles['profile_overrides'] = array(
       '#type' => 'fieldset',
       '#id' => 'profile_override__' . $bundle_name,
       '#states' => array(
-        'invisible' => array(':input["something"]' => array('collapsed' => FALSE)),
+        'invisible' => array(':input[name="' . $entity_type . '_language"]' => array('visible' => FALSE)),
       ),
+      '#attributes' => array(
+        'style' => 'border: none; padding: 0 0 0 0;',
+      )
     );
+
     foreach ($languages as $language) {
       $profiles['profile_overrides'][$bundle_name . '_' . $language->lingotek_locale] = array(
-        '#title' => $language->name . ' Source',
         '#type' => 'select',
         '#options' => $profiles_options,
         '#value' => isset($entity_profiles[$entity_type][$bundle_name . '__' . $language->lingotek_locale]) ? $entity_profiles[$entity_type][$bundle_name . '__' . $language->lingotek_locale] : LingotekSync::PROFILE_INHERIT,
@@ -439,7 +443,7 @@ function lingotek_node_settings_row($entity_type, $bundle, $profiles, $fields, $
   }
   elseif ($entity_type == 'taxonomy_term') {
     $row = array(
-      array('data' => $bundle['label'], 'width' => '20%'),
+      array('data' => $bundle['collapsible_label'], 'width' => '20%'),
       array('data' => drupal_render($profiles)),
       array('data' => drupal_render($entity_specifics['translation_mode']), 'width' => '15%'),
       array('data' => drupal_render($entity_specifics['translation_handling'])),
@@ -448,7 +452,7 @@ function lingotek_node_settings_row($entity_type, $bundle, $profiles, $fields, $
   }
   else {
     $row = array(
-      array('data' => $bundle['label'], 'width' => '20%'),
+      array('data' => $bundle['collapsible_label'], 'width' => '20%'),
       array('data' => drupal_render($profiles)),
       array('data' => drupal_render($fields), 'width' => '65%'),
     );
@@ -649,27 +653,13 @@ function lingotek_admin_entity_bundle_profiles_form_submit($form, &$form_state) 
  * Return an array of entity types with the number of each using the given profile
  */
 function lingotek_admin_profile_usage($profile_id) {
-  $entity_counts = array();
-  $entities = lingotek_get_all_entities_by_profile($profile_id);
-  // count up the entities by type
-  foreach ($entities as $e) {
-    if (isset($entity_counts[$e['type']])) {
-      $entity_counts[$e['type']]++;
-    }
-    else {
-      $entity_counts[$e['type']] = 1;
-    }
-  }
-  return $entity_counts;
+  $profile = LingotekProfile::loadById($profile_id);
+  return $profile->getUsage();
 }
 
 function lingotek_admin_profile_usage_by_types($profile_id) {
-  $bundles_using_profile = lingotek_get_bundles_by_profile_id($profile_id);
-  $count_types = 0;
-  foreach ($bundles_using_profile as $bup) {
-    $count_types += count($bup);
-  }
-  return $count_types;
+  $profile = LingotekProfile::loadById($profile_id);
+  return $profile->getUsage($by_bundle = TRUE);
 }
 
 /**
@@ -1803,7 +1793,7 @@ function lingotek_admin_profile_form($form, &$form_state, $show_fieldset = FALSE
 
   // Workflows
   $workflows = $api->listWorkflows();
-  if ($workflows && count($workflows) > 1) {
+  if (!empty($workflows) && count($workflows) > 1) {
     $stored_workflow_id =  (isset($stored_profile['workflow_id']) ? $stored_profile['workflow_id'] : '');
     $selected_workflow_id = (isset($form_state['values']['workflow_id']) ? $form_state['values']['workflow_id'] : $stored_workflow_id);
     $curr_workflow = $api->getWorkflow($stored_workflow_id);
@@ -1951,24 +1941,49 @@ function lingotek_admin_profile_form($form, &$form_state, $show_fieldset = FALSE
       '#id' => 'language_override__' . $language->lingotek_locale,
     );
 
-    $form['defaults']['language_override'][$language->lingotek_locale]['settings'] = array(
+    $default_language_override_value = LingotekSync::PROFILE_INHERIT;
+    if (!empty($stored_profile['target_language_overrides'][$language->lingotek_locale])) {
+      if (!empty($stored_profile['target_language_overrides'][$language->lingotek_locale]['disabled'])) {
+        $default_language_override_value = LingotekSync::PROFILE_DISABLED;
+      }
+      else {
+        $default_language_override_value = LingotekSync::PROFILE_CUSTOM;
+      }
+    }
+    $form['defaults']['language_override'][$language->lingotek_locale]['settings_' . $language->lingotek_locale] = array(
       '#type' => 'select',
       '#options' => $settings_options,
       '#description' => t('The default Translation Memory Vault where translations are saved.'),
-      '#default_value' => isset($form_state['values']['vault_id']) ? $form_state['values']['vault_id'] : $current_vault_id,
+      '#default_value' => $default_language_override_value,
     );
 
-    $auto_download = $form_state['values']['language_override'][$language->lingotek_locale]['auto_download'] ? $form_state['values']['language_override'][$language->lingotek_locale]['auto_download'] : '';
-    $form['defaults']['language_override'][$language->lingotek_locale]['auto_download'] = array(
+    $auto_download = isset($stored_profile['target_language_overrides'][$language->lingotek_locale]['auto_download']) ? $stored_profile['target_language_overrides'][$language->lingotek_locale]['auto_download'] : $form_state['values']['sync_method'];
+    $form['defaults']['language_override'][$language->lingotek_locale]['auto_download_' . $language->lingotek_locale] = array(
       '#type' => 'checkbox',
       '#title' => $download_translations_title,
       '#default_value' => $auto_download,
-      '#description' => $download_translations_desc,
+      '#states' => array(
+        'invisible' => array(
+          ':input[name="settings_' . $language->lingotek_locale . '"]' => array('!value' => LingotekSync::PROFILE_CUSTOM),
+        ),
+      ),
     );
 
-    $form['defaults']['language_override'][$language->lingotek_locale]['workflow'] = array(
-
-    );
+    if (!empty($workflows) && count($workflows) > 1) {
+      $curr_workflow = !empty($stored_profile['target_language_overrides'][$language->lingotek_locale]['workflow_id']) ? $stored_profile['target_language_overrides'][$language->lingotek_locale]['workflow_id'] : $selected_workflow_id;
+      $form['defaults']['language_override'][$language->lingotek_locale]['workflow_id_' . $language->lingotek_locale] = array(
+        '#type' => 'select',
+        '#title' => t('Workflow'),
+        '#options' => $workflows,
+        '#default_value' => $curr_workflow ? $curr_workflow : $stored_workflow_id,
+        '#empty_option' => '(select one)',
+        '#states' => array(
+          'invisible' => array(
+            ':input[name="settings_' . $language->lingotek_locale . '"]' => array('!value' => LingotekSync::PROFILE_CUSTOM),
+          ),
+        ),
+      );
+    }
   }
 
 
@@ -2016,51 +2031,73 @@ function lingotek_config_default_workflow_form_callback($form, $form_state) {
 }
 
 function lingotek_admin_profile_form_submit($form, &$form_state) {
-  if ($form_state['values']['op'] == 'Save') {
-    $profiles = variable_get('lingotek_profiles');
-    $profile = array();
+  $profile_obj = LingotekProfile::loadById($form_state['values']['profile_id']);
 
-    $profile['name'] = $form_state['values']['name'];
+  if ($form_state['values']['op'] == 'Save') {
+    $profile_obj->setName($form_state['values']['name']);
     foreach (lingotek_get_profile_fields(TRUE, TRUE) as $key) {
       if (isset($form_state['values'][$key])) {
-        $profile[$key] = $form_state['values'][$key];
+        $profile_obj->setAttribute($key, $form_state['values'][$key]);
+      }
+    }
+
+    // Set all source-language-specific overrides
+    //$profile['target_language_overrides'] = array();
+    $languages = lingotek_get_target_locales();
+    foreach ($languages as $l) {
+      if (!empty($form_state['values']['settings_' . $l])) {
+        $override_settings = $form_state['values']['settings_' . $l];
+        if ($override_settings == LingotekSync::PROFILE_DISABLED) {
+          $profile_obj->deleteTargetLanguageOverrides($l);
+          $profile_obj->setAttribute('disabled', TRUE, $l);
+        }
+        elseif ($override_settings === LingotekSync::PROFILE_CUSTOM) {
+          // set auto-download
+          $auto_download = !empty($form_state['values']['auto_download_' . $l]) ? $form_state['values']['auto_download_' . $l] : FALSE;
+          $profile_obj->setAutoDownload($auto_download, $l);
+
+          // set workflow
+          $workflow_id = !empty($form_state['values']['workflow_id_' . $l]) ? $form_state['values']['workflow_id_' . $l] : $profile['workflow_id'];
+          $profile_obj->setWorkflow($workflow_id, $l);
+        }
+        elseif ($override_settings === LingotekSync::PROFILE_INHERIT) {
+          $profile_obj->deleteTargetLanguageOverrides($l);
+        }
+        else {
+          throw new LingotekException('Unknown profile selection');
+        }
       }
     }
 
     // If the workflow has changed and if current translations should be changed,
     // then pull all nodes associated with this profile and update the workflow
     // on TMS, including the correct phase.
-    if (isset($form_state['values']['profile_id'])) {
-      $profile_id = $form_state['values']['profile_id'];
-      lingotek_set_profile_settings($profile_id, $profile);
+    //
+    // TODO: ACCOUNT FOR THE LANGUAGE-SPECIFIC OVERRIDES BEFORE CHANGING THIS!
+    if (isset($form_state['values']['prefill_phases_checkbox'])
+        && $form_state['values']['prefill_phases_checkbox']) {
+      $workflow_id = $form_state['values']['workflow_id'];
+      $prefill_phase = $form_state['values']['prefill_phase_select'];
 
-      if (isset($form_state['values']['prefill_phases_checkbox'])
-          && $form_state['values']['prefill_phases_checkbox']) {
-        $workflow_id = $form_state['values']['workflow_id'];
-        $prefill_phase = $form_state['values']['prefill_phase_select'];
+      $entities = lingotek_get_all_entities_by_profile($profile_obj->getId());
 
-        $entities = lingotek_get_all_entities_by_profile($profile_id);
+      $api = LingotekApi::instance();
+      $document_ids = array();
 
-        $api = LingotekApi::instance();
-        $document_ids = array();
-
-        // gather doc IDs for bulk submission
-        foreach ($entities as $entity) {
-          if (isset($entity['document_id']) && $entity['document_id']) {
-            $document_ids[] = $entity['document_id'];
-            lingotek_keystore($entity['type'], $entity['id'], 'workflow_id', $workflow_id);
-          }
+      // gather doc IDs for bulk submission
+      foreach ($entities as $entity) {
+        if (isset($entity['document_id']) && $entity['document_id']) {
+          $document_ids[] = $entity['document_id'];
+          lingotek_keystore($entity['type'], $entity['id'], 'workflow_id', $workflow_id);
         }
-        if (!empty($document_ids)) {
-          $api->changeWorkflow($document_ids, $workflow_id, $prefill_phase);
-        }
+      }
+      if (!empty($document_ids)) {
+        $api->changeWorkflow($document_ids, $workflow_id, $prefill_phase);
       }
     }
   }
   elseif ($form_state['values']['op'] == 'Delete') {
-    $profiles = variable_get('lingotek_profiles');
-    unset($profiles[$form_state['values']['profile_id']]);
-    variable_set('lingotek_profiles', $profiles);
+    $profile_obj->delete();
   }
   elseif ($form_state['values']['op'] == 'Cancel') {
     //do nothing
@@ -2638,13 +2675,14 @@ function lingotek_get_language_specific_labels($entity_type, $bundle, $languages
         'collapsible',
         'collapsed',
       ),
+      'name' => $entity_type . '_languages',
       'style' => 'border: none;',
     ),
   );
   foreach ($languages as $k => $v) {
     $label[$k] = array(
       '#type' => 'markup',
-      '#markup' => '<div style="float: none;">' . $v->native . '&nbsp;(source)</div>',
+      '#markup' => '<div name="' . $entity_type . '_language" style="float: none;">' . $v->native . '&nbsp;(source)</div>',
     );
   }
   return $label;

@@ -1541,22 +1541,8 @@ function lingotek_get_bundles_by_profile_id($profile_id) {
     }
     return $bundles;
   }
-  $entities = entity_get_info();
-  $lentities = variable_get('lingotek_entity_profiles');
-  foreach ($entities as $entity_name => $entity) {
-    if (!isset($lentities[$entity_name])) {
-      unset($entities[$entity_name]);
-    }
-    foreach ($entity['bundles'] as $bundle_name => $bundle) {
-      if (isset($lentities[$entity_name][$bundle_name]) && $lentities[$entity_name][$bundle_name] === (string)$profile_id) {
-        if (!isset($bundles[$entity_name])) {
-          $bundles[$entity_name] = array();
-        }
-        $bundles[$entity_name][$bundle_name] = TRUE;
-      }
-    }
-  }
-  return $bundles;
+  $profile = LingotekProfile::loadById($profile_id);
+  return $profile->getBundles();
 }
 
 /*

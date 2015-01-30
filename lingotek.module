@@ -1261,10 +1261,6 @@ function lingotek_get_profiles() {
   return $profiles;
 }
 
-function lingotek_set_profiles($profiles) {
-  variable_set('lingotek_profiles', $profiles);
-}
-
 function lingotek_get_profile_settings($profile_id) {
   // merge of global profile settings and profile-specific settings
   $profiles = lingotek_get_profiles();
