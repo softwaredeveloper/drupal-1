@@ -967,17 +967,17 @@ function lingotek_get_node_settings_form($form, &$form_state, $node = NULL) {
     );
   }
 
-  $form['lingotek']['create_lingotek_document'] = array(
+  $form['lingotek']['auto_upload'] = array(
     '#type' => 'checkbox',
     '#title' => t('Upload Content Automatically'),
-    '#default_value' => $node->lingotek['create_lingotek_document'],
+    '#default_value' => $node->lingotek['auto_upload'],
     '#description' => t('When enabled, your Drupal content (including saved edits) will automatically be uploaded to Lingotek for translation.<br/>When disabled, you are required to manually upload your content by clicking the "Upload" button on the Translations tab.'),
   );
 
-  $form['lingotek']['sync_method'] = array(
+  $form['lingotek']['auto_download'] = array(
     '#type' => 'checkbox',
     '#title' => t('Download Translations Automatically'),
-    '#default_value' => $node->lingotek['sync_method'],
+    '#default_value' => $node->lingotek['auto_download'],
     '#description' => t('When enabled, completed translations will automatically be downloaded from Lingotek.<br/>When disabled, you are required to manually download translations by clicking the "Download" button on the Translations tab.'),
   );
 
@@ -1211,8 +1211,8 @@ function lingotek_get_global_profile() {
     'name' => '',
     'document_id' => NULL,
     'lingotek_nodes_translation_method' => variable_get('lingotek_nodes_translation_method'),
-    'create_lingotek_document' => 0,
-    'sync_method' => 0,
+    'auto_upload' => 0,
+    'auto_download' => 0,
     'allow_target_localization' => 0,
     'allow_source_overwriting' => 0,
     'allow_community_translation' => 0,
@@ -1248,13 +1248,13 @@ function lingotek_get_profiles() {
   if (empty($profiles)) {
     $profiles[] = array(
       'name' => 'Automatic',
-      'create_lingotek_document' => 1,
-      'sync_method' => 1,
+      'auto_upload' => 1,
+      'auto_download' => 1,
     );
     $profiles[] = array(
       'name' => 'Manual',
-      'create_lingotek_document' => 0,
-      'sync_method' => 0,
+      'auto_upload' => 0,
+      'auto_download' => 0,
     );
     variable_set('lingotek_profiles', $profiles);
   }
@@ -1536,7 +1536,7 @@ function lingotek_entity_upload_triggered($entity, $entity_type, $changed = TRUE
 
   lingotek_keystore($entity_type, $id, 'upload_status', LingotekSync::STATUS_EDITED);
 
-  if ($entity->lingotek['create_lingotek_document']) {
+  if ($entity->lingotek['auto_upload']) {
     lingotek_entity_upload($entity, $entity_type, $context);
   }
 }
@@ -1654,7 +1654,7 @@ function lingotek_entity_download_triggered($entity, $entity_type, $lingotek_loc
     $entity = lingotek_entity_load_single($entity_type, $entity);
   }
 
-  if (!$entity->lingotek['sync_method']) {
+  if (!$entity->lingotek['auto_download']) {
     return FALSE;
   }
 
@@ -1877,6 +1877,7 @@ function lingotek_is_module_setup($redirect = TRUE) {
     }
     drupal_goto($redirect_link); // If something is missing - Go to the Setup Process
   }
+  lingotek_check_for_updates();
   return TRUE;
 }
 
@@ -2217,8 +2218,8 @@ function lingotek_get_profile_fields($include_readonly = TRUE, $include_changeab
     $profile_fields = array_merge($profile_fields, array(
       'profile',
       'name',
-      'create_lingotek_document',
-      'sync_method',
+      'auto_upload',
+      'auto_download',
       'allow_target_localization',
       'allow_source_overwriting',
       'allow_community_translation',
@@ -2578,7 +2579,7 @@ function lingotek_clear_exceptions_form($form, $form_state) {
 
 function lingotek_clear_exceptions_form_submit($form_state, $form) {
   $content_type = $form_state['bundle_name']['#value'];
-  $delete_keys = "'allow_community_translation', 'create_lingotek_document', 'sync_method', 'url_alias_translation', 'profile'";
+  $delete_keys = "'allow_community_translation', 'auto_upload', 'auto_download', 'url_alias_translation', 'profile'";
   $delete_query = db_query("DELETE lem.* FROM {node} AS n JOIN lingotek_entity_metadata AS lem ON n.nid = lem.entity_id WHERE entity_key IN (" . $delete_keys . ") AND type = '" . $content_type . "'");
   $delete_query->execute();
   drupal_set_message(t('All translation profile exceptions for nodes of type "@content_type" have been removed.', array('@content_type' => $content_type)));
@@ -2732,6 +2733,19 @@ function lingotek_field_attach_delete_bundle($entity_type, $bundle, $instances) 
   if (isset($entity_profiles[$entity_type][$bundle])) {
     unset($entity_profiles[$entity_type][$bundle]);
     variable_set('lingotek_entity_profiles', $entity_profiles);
+  }
+}
+
+function lingotek_check_for_updates() {
+  global $base_url;
+  $mandatory_updates = array(
+    'lingotek_update_7607',
+  );
+  foreach ($mandatory_updates as $update) {
+    if (!variable_get($update, FALSE)) {
+      $update_link = '<a href="' . $base_url . '/update.php">' . t('database updates') . '</a>';
+      drupal_set_message(t('Some !database_updates are required for the Lingotek Translation module.', array('!database_updates' => $update_link)), 'warning');
+    }
   }
 }
 

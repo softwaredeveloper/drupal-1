@@ -1762,10 +1762,10 @@ function lingotek_render_source($entity_type, $row, $icon, $languages, $language
 function lingotek_render_configuration($row, $profiles, $disabled_class) {
   $configuration = '';
 
-  if ($row->lingotek['create_lingotek_document']) {
+  if ($row->lingotek['auto_upload']) {
     $configuration .= '<i class="fa fa-arrow-up' . $disabled_class . '" title="' . t('Automatic Upload') . '"></i> ';
   }
-  if ($row->lingotek['sync_method']) {
+  if ($row->lingotek['auto_download']) {
     $configuration .= '<i class="fa fa-arrow-down' . $disabled_class . '" title="' . t('Automatic Download') . '"></i> ';
   }
   if ($row->lingotek['allow_community_translation']) {

@@ -46,6 +46,7 @@ function lingotek_install() {
   lingotek_migration_2();
   $sandbox = array();
   lingotek_update_7401($sandbox);
+  lingotek_update_7607($sandbox);
 }
 
 /**
@@ -993,4 +994,36 @@ function lingotek_update_7606(&$sandbox) {
     variable_set('lingotek_enabled_fields', $enabled_fields);
     return t("Added flag confirming setup complete for comment translation (currently disabled).");
   }
+}
+
+/**
+ * Convert 'create_lingotek_document' and 'sync_method' to 'auto_upload' and 'auto_download', respectively.
+ */
+function lingotek_update_7607(&$sandbox) {
+  // convert the profile settings
+  $profiles = variable_get('lingotek_profiles');
+  foreach ($profiles as $profile) {
+    if (isset($profile['sync_method'])) {
+      $profile['auto_download'] = $profile['sync_method'];
+      unset($profile['sync_method']);
+    }
+    if (isset($profile['create_lingotek_document'])) {
+      $profile['auto_upload'] = $profile['create_lingotek_document'];
+      unset($profile['create_lingotek_document']);
+    }
+  }
+  variable_set('lingotek_profiles', $profiles);
+
+  // modify the custom lines from the database
+  db_update('lingotek_entity_metadata')
+    ->fields(array('entity_key' => 'auto_download'))
+    ->condition('entity_key', 'sync_method')
+    ->execute();
+  db_update('lingotek_entity_metadata')
+    ->fields(array('entity_key' => 'auto_upload'))
+    ->condition('entity_key', 'create_lingotek_document')
+    ->execute();
+
+  variable_set('lingotek_update_7607', TRUE);
+  return t('Converted profile references of "sync method" to "auto-download" and references of "create lingotek document" to "auto-upload".');
 }

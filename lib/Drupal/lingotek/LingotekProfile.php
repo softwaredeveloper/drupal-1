@@ -14,6 +14,7 @@ class LingotekProfile {
   protected static $global_profile;
   protected $profile;
   protected $profile_id;
+  protected $inherit;
 
   /**
    * Constructor.
@@ -24,7 +25,8 @@ class LingotekProfile {
    *   The name of the profile to load
    */
   private function __construct($profile_id, $profile_attributes = array()) {
-    $this->profile_id = $profile_id;
+    $this->setId($profile_id);
+    $this->setInherit(TRUE);
 
     if ($profile_id == LingotekSync::PROFILE_DISABLED) {
       return LingotekSync::PROFILE_DISABLED;
@@ -80,8 +82,23 @@ class LingotekProfile {
     }
   }
 
+  // @params TRUE or FALSE, depending on whether the profile should look for inherited attributes
+  //     from the global profile
+  public function setInherit($inherit) {
+    $this->inherit = (bool) $inherit;
+  }
+
+  public function lookForInherited() {
+    return $this->inherit;
+  }
+
   public function getId() {
     return $this->profile_id;
+  }
+
+  // IDs should either be auto-generated or special-case IDs, not configurable by the user
+  protected function setId($profile_id) {
+    $this->profile_id = $profile_id;
   }
 
   // replaces lingotek_admin_profile_usage() in lingotek.admin.inc
@@ -292,11 +309,31 @@ class LingotekProfile {
     return $this->setAttribute('workflow_id', $workflow_id, $target_locale);
   }
 
+  public function disableTargetLocale($target_locale) {
+    $this->deleteTargetLocaleOverrides($target_locale);
+    $this->setAttribute('disabled', TRUE, $target_locale);
+  }
+
+  public function isTargetLocaleDisabled($target_locale) {
+    // don't check for disabled attributes in the parent profiles
+    $this->setInherit(FALSE);
+    $disabled = FALSE;
+    if (!empty($this->getAttribute('disabled', $target_locale))) {
+      $disabled = TRUE;
+    }
+    $this->setInherit(TRUE);
+    return $disabled;
+  }
+
+  public function isTargetLocaleCustom($target_locale) {
+    return !isTargetLocaleDisabled($target_locale) && !empty(getTargetLocaleOverrides($target_locale));
+  }
+
   public function toArray() {
     return array_merge(self::$global_profile, $this->profile);
   }
 
-  protected function initTargetLanguageOverride($target_locale) {
+  protected function initTargetLocaleOverride($target_locale) {
     if (!isset($this->profile['target_language_overrides'][$target_locale])) {
       $this->profile['target_language_overrides'][$target_locale] = array();
     }
@@ -306,11 +343,13 @@ class LingotekProfile {
     if (!empty($target_locale) && isset($this->profile['target_language_overrides'][$target_locale][$attrib_name])) {
       return $this->profile['target_language_overrides'][$target_locale][$attrib_name];
     }
-    elseif (!empty($this->profile[$attrib_name])) {
-      return $this->profile[$attrib_name];
-    }
-    elseif (!empty(self::$global_profile[$attrib_name])) {
-      return self::$global_profile[$attrib_name];
+    elseif ($this->lookForInherited()) {
+      if (!empty($this->profile[$attrib_name])) {
+        return $this->profile[$attrib_name];
+      }
+      elseif (!empty(self::$global_profile[$attrib_name])) {
+        return self::$global_profile[$attrib_name];
+      }
     }
     return NULL;
   }
@@ -320,7 +359,7 @@ class LingotekProfile {
       // Set the language-specific attribute if different from the base attribute
       $original_value = $this->getAttribute($attrib_name, $value);
       if ($value !== $original_value) {
-        $this->initTargetLanguageOverride($target_locale);
+        $this->initTargetLocaleOverride($target_locale);
         $this->profile['target_language_overrides'][$target_locale][$attrib_name] = $value;
       }
       else {
@@ -365,11 +404,15 @@ class LingotekProfile {
     }
   }
 
-  public function deleteTargetLanguageOverrides($target_locale) {
-    if (empty($target_locale)) {
-      throw new LingotekException("deleteTargetLanguageOverrides failed: empty target_locale");
-    }
+  public function deleteTargetLocaleOverrides($target_locale) {
     unset($this->profile['target_language_overrides'][$target_locale]);
     $this->save();
+  }
+
+  public function getTargetLocaleOverrides($target_locale) {
+    if (!empty($this->profile['target_language_overrides'][$target_locale])) {
+      return $this->profile['target_language_overrides'][$target_locale];
+    }
+    return NULL;
   }
 }
