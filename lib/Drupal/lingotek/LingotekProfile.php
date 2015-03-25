@@ -326,7 +326,7 @@ class LingotekProfile {
   }
 
   public function isTargetLocaleCustom($target_locale) {
-    return !isTargetLocaleDisabled($target_locale) && !empty(getTargetLocaleOverrides($target_locale));
+    return !$this->isTargetLocaleDisabled($target_locale) && !empty($this->getTargetLocaleOverrides($target_locale));
   }
 
   public function toArray() {

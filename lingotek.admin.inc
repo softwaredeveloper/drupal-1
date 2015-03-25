@@ -241,6 +241,7 @@ function lingotek_node_settings_row_profiles($bundle_name, $entity_profiles, $en
     $profiles_options[LingotekSync::PROFILE_INHERIT] = '(use default profile for ' . $bundle_name . ')';
 
     $profiles['profile_' . $bundle_name] = array(
+      '#title' => 'Default Profile',
       '#type' => 'select',
       '#options' => $profiles_options,
       '#value' => isset($entity_profiles[$entity_type][$bundle_name]) ? $entity_profiles[$entity_type][$bundle_name] : $default_profile,
@@ -264,6 +265,7 @@ function lingotek_node_settings_row_profiles($bundle_name, $entity_profiles, $en
 
     foreach ($languages as $language) {
       $profiles['profile_overrides'][$bundle_name . '_' . $language->lingotek_locale] = array(
+        '#title' => 'Content created in ' . $language->name,
         '#type' => 'select',
         '#options' => $profiles_options,
         '#value' => isset($entity_profiles[$entity_type][$bundle_name . '__' . $language->lingotek_locale]) ? $entity_profiles[$entity_type][$bundle_name . '__' . $language->lingotek_locale] : LingotekSync::PROFILE_INHERIT,
@@ -765,7 +767,7 @@ function lingotek_admin_additional_translation_settings_form($form, &$form_state
   $workflows = $api->listWorkflows();
 
   if (is_array($workflows) && count($workflows) > 1 && $setup_complete) {
-    $config_profile = LingotekProfile::loadByName(LingotekSync::PROFILE_CONFIG);
+    $config_profile = LingotekProfile::loadById(LingotekSync::PROFILE_CONFIG);
     $stored_workflow_id = $config_profile->getWorkflow();
     $selected_workflow_id = (isset($form_state['values']['addtl_workflow_id']) ? $form_state['values']['addtl_workflow_id'] : $stored_workflow_id);
     $curr_workflow = $api->getWorkflow($stored_workflow_id);
@@ -815,27 +817,28 @@ function lingotek_admin_additional_translation_settings_form($form, &$form_state
 
   // Projects
   $projects = (class_exists('LingotekApi')) ? $api->listProjects() : array();
-  $id = variable_get('lingotek_project', '');
+  $project_id = variable_get('lingotek_project', '');
 
-  if ($id == '' || !array_key_exists($id, $projects)) { //No project id set, project deleted, or community changed to one without that project.  Try to find the Drupal project
-    $id = array_search($site, $projects);
-    if ($id === False) { //Setup a default Drupal project
-      $id = lingotek_add_project($site);
+  if ($project_id == '' || !array_key_exists($project_id, $projects)) { //No project id set, project deleted, or community changed to one without that project.  Try to find the Drupal project
+    $project_id = array_search($site, $projects);
+    if ($project_id === False) { //Setup a default Drupal project
+      $project_id = lingotek_add_project($site);
       $projects = (class_exists('LingotekApi')) ? $api->listProjects() : array();
     }
     else { //Assign to an existing Drupal project
-      variable_set('lingotek_project', $id);
+      variable_set('lingotek_project', $project_id);
     }
   }
 
   if ($projects && count($projects) > 0 && $setup_complete) {
     $sorted = asort($projects);
+    $default_project_id = $config_profile->getAttribute('project_id');
     $form['additional_translation']['addtl_project_id'] = array(
       '#type' => 'select',
       '#title' => t('Default Project'),
       '#options' => $projects,
       '#description' => t('The default Lingotek Project with which translations will be associated.'),
-      '#default_value' => isset($config_profile['project_id']) ? $config_profile['project_id'] : $id,
+      '#default_value' => $default_project_id ? $default_project_id : $project_id,
     );
   }
 
@@ -856,12 +859,13 @@ function lingotek_admin_additional_translation_settings_form($form, &$form_state
   }
 
   if ($personal_vault_count + $community_vault_count > 0 && $setup_complete) {
+    $default_vault_id = $config_profile->getAttribute('vault_id');
     $form['additional_translation']['addtl_vault_id'] = array(
       '#type' => 'select',
       '#title' => t('Default Vault'),
       '#options' => $vaults,
       '#description' => t('The default Translation Memory Vault where translations are saved.'),
-      '#default_value' => isset($config_profile['vault_id']) ? $config_profile['vault_id'] : $current_vault_id,
+      '#default_value' => $default_vault_id ? $default_vault_id : $current_vault_id,
     );
   }
 
@@ -2042,7 +2046,7 @@ function lingotek_admin_profile_form_submit($form, &$form_state) {
       if (!empty($form_state['values']['settings_' . $l])) {
         $override_settings = $form_state['values']['settings_' . $l];
         if ($override_settings == LingotekSync::PROFILE_DISABLED) {
-          $profile_obj->deleteTargetLanguageOverrides($l);
+          $profile_obj->deleteTargetLocaleOverrides($l);
           $profile_obj->setAttribute('disabled', TRUE, $l);
         }
         elseif ($override_settings === LingotekSync::PROFILE_CUSTOM) {
@@ -2055,7 +2059,7 @@ function lingotek_admin_profile_form_submit($form, &$form_state) {
           $profile_obj->setWorkflow($workflow_id, $l);
         }
         elseif ($override_settings === LingotekSync::PROFILE_INHERIT) {
-          $profile_obj->deleteTargetLanguageOverrides($l);
+          $profile_obj->deleteTargetLocaleOverrides($l);
         }
         else {
           throw new LingotekException('Unknown profile selection');
