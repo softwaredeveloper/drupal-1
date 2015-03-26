@@ -296,7 +296,8 @@ class LingotekSync {
       }
 
       // exclude disabled entities (including those that have disabled bundles)
-      $disabled_entities = lingotek_get_entities_by_profile_and_entity_type(LingotekSync::PROFILE_DISABLED, $entity_type);
+      $disabled_profile = LingotekProfile::loadById(LingotekSync::PROFILE_DISABLED);
+      $disabled_entities = $disabled_profile->getEntities($entity_type);
       if (count($disabled_entities)) {
         $disabled_entity_ids = array();
         array_walk($disabled_entities, function($a) use (&$disabled_entity_ids) {
@@ -372,7 +373,8 @@ class LingotekSync {
       }
 
       // exclude disabled nodes (including those that have disabled bundles)
-      $disabled_entities = lingotek_get_entities_by_profile_and_entity_type(LingotekSync::PROFILE_DISABLED, $entity_base_table);
+      $disabled_profile = LingotekProfile::loadById(LingotekSync::PROFILE_DISABLED);
+      $disabled_entities = $disabled_profile->getEntities($entity_base_table);
       if (!empty($disabled_entities)) {
         $disabled_entity_ids = array();
         array_walk($disabled_entities, function($a) use (&$disabled_entity_ids) {

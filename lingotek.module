@@ -779,7 +779,7 @@ function lingotek_get_language_override_form($form, &$form_state, $node = NULL) 
   foreach ($profiles as $k => $p) {
     $form[$k . '_override'] = array(
       '#type' => 'hidden',
-      '#value' => !empty($p['allow_source_overwriting']) ? 'true' : 'false',
+      '#value' => $p->getAttribute('allow_source_overwriting') ? 'true' : 'false',
     );
   }
   $form['actions']['submit']['#submit'][] = 'lingotek_get_language_override_form_submit';
@@ -931,12 +931,12 @@ function lingotek_get_node_settings_form($form, &$form_state, $node = NULL) {
 
   $form['lingotek']['document_id'] = array(
     '#type' => 'value',
-    '#value' => $node->lingotek['document_id'],
+    '#value' => !empty($node->lingotek['document_id']) ? $node->lingotek['document_id'] : '',
   );
 
   $form['lingotek']['upload_status'] = array(
     '#type' => 'value',
-    '#value' => $node->lingotek['upload_status'],
+    '#value' => !empty($node->lingotek['upload_status']) ? $node->lingotek['upload_status'] : '',
   );
 
   $form['lingotek']['content_begin'] = array(
@@ -1209,7 +1209,6 @@ function lingotek_get_change_workflow_form_submit($form, $form_state) {
 function lingotek_get_global_profile() {
   return array(
     'name' => '',
-    'document_id' => NULL,
     'lingotek_nodes_translation_method' => variable_get('lingotek_nodes_translation_method'),
     'auto_upload' => 0,
     'auto_download' => 0,
@@ -1217,7 +1216,6 @@ function lingotek_get_global_profile() {
     'allow_source_overwriting' => 0,
     'allow_community_translation' => 0,
     'url_alias_translation' => 0,
-    'upload_status' => LingotekSync::STATUS_EDITED,
     'project_id' => variable_get('lingotek_project'),
     'workflow_id' => variable_get('lingotek_workflow'),
     'vault_id' => variable_get('lingotek_vault'),
@@ -1229,9 +1227,10 @@ function lingotek_get_global_profile() {
  */
 function lingotek_get_profiles_by_name($include_custom = FALSE, $use_tfunction = TRUE) {
   $profile_options = array();
+  // TODO: switch this lingotek_get_profiles as arrays to objects, update usage of _by_name
   $profiles = lingotek_get_profiles();
   foreach ($profiles as $key => $profile) {
-    $profile_options[$key] = $use_tfunction ? t($profile['name']) : $profile['name'];
+    $profile_options[$key] = $use_tfunction ? t($profile->getName()) : $profile->getName();
   }
   if ($include_custom) {
     $profile_options[LingotekSync::PROFILE_CUSTOM] = $use_tfunction ? t('Custom') : 'Custom';
@@ -1242,7 +1241,7 @@ function lingotek_get_profiles_by_name($include_custom = FALSE, $use_tfunction =
   return $profile_options;
 }
 
-function lingotek_get_profiles() {
+function lingotek_get_profiles($build_objects = TRUE) {
   $profiles = variable_get('lingotek_profiles', array());
 
   if (empty($profiles)) {
@@ -1258,27 +1257,15 @@ function lingotek_get_profiles() {
     );
     variable_set('lingotek_profiles', $profiles);
   }
-  return $profiles;
-}
+  if (!$build_objects) {
+    return $profiles;
+  }
 
-function lingotek_get_profile_settings($profile_id) {
-  // merge of global profile settings and profile-specific settings
-  $profiles = lingotek_get_profiles();
-  $global_profile = lingotek_get_global_profile();
-  $profile = isset($profiles[$profile_id]) ? $profiles[$profile_id] : array();
-  return array_merge($global_profile, $profile);
-}
-
-function lingotek_set_profile_settings($profile_id, $settings) {
-  // Profiles need to know each of their settings, since each profile
-  // changes independently from all others.  There is no direct
-  // inheritance tree for profiles.  There is only inheritance for
-  // entities -> bundles.
-  $global_profile = lingotek_get_global_profile();
-  $profiles = lingotek_get_profiles();
-  $differences = array_diff($settings, $global_profile);
-  $profiles[$profile_id] = $differences;
-  variable_set('lingotek_profiles', $profiles);
+  $profile_objects = array();
+  foreach ($profiles as $id => $attributes) {
+    $profile_objects[$id] = LingotekProfile::loadById($id);
+  }
+  return $profile_objects;
 }
 
 function lingotek_get_profile_options() {
@@ -1286,7 +1273,7 @@ function lingotek_get_profile_options() {
 
   $profile_options = array();
   foreach ($profiles as $key => $profile) {
-    $profile_options[$key] = t($profile['name']);
+    $profile_options[$key] = t($profile->getName());
   }
   $profile_options[LingotekSync::PROFILE_CUSTOM] = t('Custom');
   $profile_options[LingotekSync::PROFILE_DISABLED] = t('Disabled');
@@ -1441,7 +1428,7 @@ function lingotek_entity_load($entities, $entity_type) {
 
   $global_profile = lingotek_get_global_profile();
   $node_profile_defaults = lingotek_load_profile_defaults($entity_type); // return assoc array by node type
-  $profiles_list = lingotek_get_profiles();
+  $profiles_list = lingotek_get_profiles(FALSE);
 
   $query = db_select('lingotek_entity_metadata', 'l')
       ->fields('l', array('entity_id', 'entity_key', 'value'))
@@ -1456,9 +1443,6 @@ function lingotek_entity_load($entities, $entity_type) {
   }
 
   foreach ($entities as &$entity) {
-//    if (!lingotek_supported_type($entity->type)) {
-//      continue;
-//    }
     list($id, $vid, $bundle) = lingotek_entity_extract_ids($entity_type, $entity);
 
     // Node profile inheritance heirarchy
@@ -2645,7 +2629,7 @@ function lingotek_add_advanced_form($form, $form_state, $node) {
   $show_advanced = LingotekAccount::instance()->showAdvanced();
   if ($show_advanced) {
     // Only show these options if the Lingotek document hasn't yet been created.
-    if (!$node->lingotek['document_id'] && class_exists('LingotekApi')) {
+    if (empty($node->lingotek['document_id']) && class_exists('LingotekApi')) {
 
       // Available projects.
       if ($projects = LingotekApi::instance()->listProjects()) {
@@ -2688,7 +2672,7 @@ function lingotek_add_advanced_form($form, $form_state, $node) {
     '#type' => 'textfield',
     '#title' => t('Document Id'),
     '#description' => t("Read/Overwrite the document ID associated with the document.  This can break the translation process but can also be used to help figure out if something is wrong."),
-    '#default_value' => $node->lingotek['document_id'],
+    '#default_value' => !empty($node->lingotek['document_id']) ? $node->lingotek['document_id'] : '',
   );
   $form['lingotek']['advanced']['current_lingonode'] = array(
     '#type' => 'textarea',

@@ -1000,8 +1000,12 @@ function lingotek_save_config_profile($form_state) {
     'auto_download' => 1,
   );
 
-  $profile_index = LingotekSync::PROFILE_CONFIG;
-  lingotek_set_profile_settings($profile_index, $profile);
+  try {
+    LingotekProfile::create(LingotekSync::PROFILE_CONFIG, $profile);
+  }
+  catch (LingotekException $e) {
+    LingotekProfile::update(LingotekSync::PROFILE_CONFIG, $profile);
+  }
 
   if ($config_checkbox == TRUE) {
     // Change all other workflows retroactively
@@ -1440,6 +1444,13 @@ function lingotek_admin_prefs_form($form, &$form_state, $show_fieldset = FALSE) 
     );
   }
 
+  $form[$fkey]['lingotek_enable_language_specific_profiles'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable language-specific profiles'),
+    '#default_value' => (variable_get('lingotek_enable_language_specific_profiles') ? 1 : 0),
+    '#description' => t('If checked, languages enabled for Lingotek translation will not automatically be queued for all content.  Instead, languages enabled for Lingotek will be added to the available languages for profiles but will be disabled by default on profiles that have existing content.'),
+  );
+
   $form[$fkey]['lingotek_account_plan_type'] = array(
     '#type' => 'checkbox',
     '#title' => t('Enable advanced features'),
@@ -1643,19 +1654,9 @@ function lingotek_admin_profiles_form($form, &$form_state, $show_fieldset = FALS
 }
 
 function lingotek_admin_profile_manage($profile_id) {
-  $profiles = lingotek_get_profiles();
-
+  $profiles = lingotek_get_profiles(FALSE);
+  $profile = lingotek_get_global_profile();
   if ($profile_id == 'add') {
-    $profile = (object) array(
-      'name' => '',
-      'lingotek_nodes_translation_method' => 'field',
-      'auto_upload' => 1,
-      'auto_download' => 1,
-      'allow_target_localization' => 0,
-      'allow_source_overwriting' => 0,
-      'allow_community_translation' => 0,
-      'url_alias_translation' => 0,
-    );
     end($profiles);
     // Set ID to one more than the current count, and then increment as needed.
     $profile_id = count($profiles) + 1;
@@ -1664,7 +1665,6 @@ function lingotek_admin_profile_manage($profile_id) {
     }
   }
   else {
-     $profile = lingotek_get_global_profile();
      $profile = array_merge($profile, $profiles[$profile_id]);
   }
 

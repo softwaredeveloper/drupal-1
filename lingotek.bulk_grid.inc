@@ -1025,7 +1025,7 @@ function lingotek_grid_build_filters($form_state) {
 
   $profile_defaults = lingotek_get_profiles();
   foreach ($profile_defaults as $key => $p) {
-    $profiles[$key] = $p['name'];
+    $profiles[$key] = $p->getName();
   }
   unset($profiles['CONFIG']);
   asort($profiles);
@@ -1538,7 +1538,8 @@ function lingotek_bulk_grid_filter_popup_options($query, $filters, $eid, $info, 
   }
 
   if (isset($filters['profile']) && !in_array('all', $filters['profile'])) {
-    $profiled_entities = lingotek_get_entities_by_profile_and_entity_type($filters['profile'], $entity_type);
+    $profile_obj = LingotekProfile::loadById($filters['profile']);
+    $profiled_entities = $profile_obj->getEntities($entity_type);
     $profiled_entity_ids = array(-1);
     foreach ($profiled_entities as $p) {
       $profiled_entity_ids[] = $p['id'];
@@ -1611,7 +1612,7 @@ function lingotek_bulk_grid_parse_table_data($table_data_raw, $entity_properties
     $disabled = $row->lingotek['profile'] == LingotekSync::PROFILE_DISABLED;
     $disabled_class = $disabled ? ' ltk-disabled-icon' : '';
     $allow_source_overwriting = !empty($row->lingotek['allow_source_overwriting']);
-    $allow_target_localization = !empty($profiles[$row->lingotek['profile']]['allow_target_localization']);
+    $allow_target_localization = !empty($row->lingotek['allow_target_localization']);
 
     $translation_icons = lingotek_lang_icons($entity_properties['type'], $languages, $entity_id, $locales_statuses, $disabled, $row->language, $allow_source_overwriting, $allow_target_localization); // show translation statuses
     if (!empty($translation_icons['source'])) {
@@ -1781,7 +1782,7 @@ function lingotek_render_configuration($row, $profiles, $disabled_class) {
   else {
     $profile_key = $row->lingotek['profile'];
     if (array_key_exists($profile_key, $profiles)) {
-      $configuration = t($profiles[$profile_key]['name']);
+      $configuration = t($profiles[$profile_key]->getName());
     }
     else {
       $configuration = t('Unknown');// profile id does not exist in profiles (this state should be unobtainable)

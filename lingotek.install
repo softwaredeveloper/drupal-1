@@ -1001,8 +1001,8 @@ function lingotek_update_7606(&$sandbox) {
  */
 function lingotek_update_7607(&$sandbox) {
   // convert the profile settings
-  $profiles = variable_get('lingotek_profiles');
-  foreach ($profiles as $profile) {
+  $profiles = variable_get('lingotek_profiles', array());
+  foreach ($profiles as &$profile) {
     if (isset($profile['sync_method'])) {
       $profile['auto_download'] = $profile['sync_method'];
       unset($profile['sync_method']);
@@ -1013,7 +1013,7 @@ function lingotek_update_7607(&$sandbox) {
     }
   }
   variable_set('lingotek_profiles', $profiles);
-
+  cache_clear_all();
   // modify the custom lines from the database
   db_update('lingotek_entity_metadata')
     ->fields(array('entity_key' => 'auto_download'))

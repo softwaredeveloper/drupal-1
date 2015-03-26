@@ -28,24 +28,55 @@ class LingotekProfile {
     $this->setId($profile_id);
     $this->setInherit(TRUE);
 
-    if ($profile_id == LingotekSync::PROFILE_DISABLED) {
+    if ($profile_id === LingotekSync::PROFILE_DISABLED) {
       return LingotekSync::PROFILE_DISABLED;
     }
-    if ($profile_id == LingotekSync::PROFILE_INHERIT) {
+    if ($profile_id === LingotekSync::PROFILE_INHERIT) {
       return LingotekSync::PROFILE_INHERIT;
     }
     if (empty(self::$profiles)) {
-      self::$profiles = variable_get('lingotek_profiles', array());
+      $this->refresh();
     }
     if (empty(self::$global_profile)) {
       self::$global_profile = lingotek_get_global_profile();
     }
     if (empty(self::$profiles[$profile_id])) {
       // create one on the fly
-      self::$profiles[$profile_id] = array_merge(self::$global_profile, $profile_attributes);
+      $unique_attributes = array();
+      foreach ($profile_attributes as $key => $value) {
+        if (empty(self::$global_profile[$key]) || self::$global_profile[$key] !== $value) {
+          $unique_attributes[$key] = $value;
+        }
+      }
+      self::$profiles[$profile_id] = $unique_attributes;
+      $this->save();
     }
     // A convenience reference to the current profile.
     $this->profile = &self::$profiles[$this->profile_id];
+  }
+
+  public static function create($profile_id, array $profile_attributes) {
+    if (isset(self::$profiles[$profile_id])) {
+      throw new LingotekException('Unable to create profile "' . $profile_id . '": profile already exists.');
+    }
+    return new LingotekProfile($profile_id, $profile_attributes);
+  }
+
+  public static function update($profile_id, array $profile_attributes) {
+    if (!isset(self::$profiles[$profile_id])) {
+      throw new LingotekException('Unable to update profile "' . $profile_id . '": profile does not exist.');
+    }
+    $profile = self::loadById($profile_id);
+    foreach ($profile_attributes as $key => $value) {
+      if (!empty(self::$global_profile[$key]) && self::$global_profile[$key] === $value) {
+        // remove any attributes that are the same as the global ones
+        $profile->deleteAttribute($key);
+      }
+      else {
+        // keep any custom attributes
+        $profile->setAttribute($key, $value);
+      }
+    }
   }
 
   public static function loadById($profile_id) {
@@ -53,7 +84,7 @@ class LingotekProfile {
   }
 
   public static function loadByName($profile_name) {
-    self::$profiles = variable_get('lingotek_profiles', array());
+    $this->refresh();
     foreach (self::$profiles as $profile_id => $profile) {
       if ($profile['name'] == $profile_name) {
         return new LingotekProfile($profile_id);
@@ -154,11 +185,11 @@ class LingotekProfile {
       $all_bundles = $this->getBundles();
       $bundles = array();
       $entities = array();
-    
+
       if (isset($all_bundles[$entity_type])) {
         $bundles = array($entity_type => $all_bundles[$entity_type]);
       }
-    
+
       // get all entities that belond to those bundles
       foreach ($bundles as $entity_type => $entity_bundles) {
         if ($entity_type == 'comment') {
@@ -190,16 +221,16 @@ class LingotekProfile {
         }
         // END OPTIMIZED WAY
       }
-    
+
       // subtract all entities specifically *not* set to the given profile
       $query = db_select('lingotek_entity_metadata', 'lem')
           ->fields('lem', array('entity_id', 'entity_type'))
           ->condition('lem.entity_key', 'profile')
-          ->condition('lem.value', $this->getId(), is_array($this->getId()) ? 'NOT IN' : '!=')
+          ->condition('lem.value', $this->getId(), '!=')
           ->condition('lem.entity_type', $entity_type);
       $result = $query->execute();
       $subtract_entity_ids = $result->fetchAll();
-    
+
       $doc_ids = lingotek_get_document_id_tree();
       $subtractions = array();
       foreach ($subtract_entity_ids as $sei) {
@@ -217,12 +248,12 @@ class LingotekProfile {
           $filtered_entities[$e['id']] = $e;
         }
       }
-    
+
       // add all entities specifically set to the given profile
       $query = db_select('lingotek_entity_metadata', 'lem')
           ->fields('lem', array('entity_id', 'entity_type'))
           ->condition('lem.entity_key', 'profile')
-          ->condition('lem.value', $this->getId(),  is_array($this->getId()) ? 'IN' : '=');
+          ->condition('lem.value', $this->getId());
       if ($entity_type != 'all') {
         $query->condition('lem.entity_type', $entity_type);
       }
@@ -259,6 +290,10 @@ class LingotekProfile {
 
   public function save() {
     variable_set('lingotek_profiles', self::$profiles);
+  }
+
+  public function refresh() {
+    self::$profiles = variable_get('lingotek_profiles', array());
   }
 
   public function delete() {
@@ -307,6 +342,14 @@ class LingotekProfile {
 
   public function setWorkflow($workflow_id, $target_locale = NULL) {
     return $this->setAttribute('workflow_id', $workflow_id, $target_locale);
+  }
+
+  public function getProjectId() {
+    return $this->getAttribute('project_id');
+  }
+
+  public function setProjectId($project_id) {
+    $this->setAttribute('project_id', $project_id);
   }
 
   public function disableTargetLocale($target_locale) {
@@ -413,6 +456,23 @@ class LingotekProfile {
     if (!empty($this->profile['target_language_overrides'][$target_locale])) {
       return $this->profile['target_language_overrides'][$target_locale];
     }
-    return NULL;
+    return array();
   }
+
+  public function getAttributes($target_locale = NULL) {
+    if (empty(self::$profiles[$this->getId()])) {
+      throw new LingotekException('Profile ID "' . $this->getId() . '" not found.');
+    }
+    if ($target_locale) {
+      $attributes = $this->getTargetLocaleOverrides($target_locale);
+      if ($this->lookForInherited()) {
+        $attributes = array_merge(self::$profiles[$this->getId()], $attributes);
+      }
+    }
+    else {
+      $attributes = self::$profiles[$this->getId()];
+    }
+    return array_merge(self::$global_profile, $attributes);
+  }
+
 }
