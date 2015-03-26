@@ -1571,11 +1571,27 @@ function lingotek_entity_upload($entity, $entity_type, &$context = array()) {
   $ln = LingotekEntity::load($entity, $entity_type);
   $entity_has_doc_id = $ln->getMetadataValue('document_id');
   module_invoke_all('lingotek_pre_upload', $ln);
+
+  // Get the source language and available target languages.
+  $source = isset($ln->language) ? $ln->language : language_default()->language;
+  $source = Lingotek::convertDrupal2Lingotek($source);
+  $target_locales = Lingotek::getLanguagesWithoutSource($source);
+
+  // Pull the desired target locales for the entity's current profile.
+  if (variable_get('lingotek_enable_language_specific_profiles', FALSE)) {
+    $profile = LingotekProfile::loadById($entity->lingotek['profile']);
+    $target_locales = $profile->filterTargetLocales(array_keys($target_locales));
+    $with_targets = $target_locales;
+  }
+  else {
+    $with_targets = TRUE;
+  }
+
   if ($entity_has_doc_id) {
     $success = LingotekApi::instance()->updateContentDocument($ln);
   }
   else {
-    $success = LingotekApi::instance()->addContentDocument($ln, TRUE);
+    $success = LingotekApi::instance()->addContentDocument($ln, $with_targets);
     if (!empty($ln->lingotek['allow_source_overwriting'])) {
       lingotek_keystore($entity_type, $id, 'original_language', $ln->language);
     }
@@ -1610,17 +1626,14 @@ function lingotek_entity_upload($entity, $entity_type, &$context = array()) {
 
   lingotek_keystore($entity_type, $id, 'last_uploaded', time());
 
-  $source = isset($ln->language) ? $ln->language : language_default()->language;
-  $source = Lingotek::convertDrupal2Lingotek($source);
-  $languages = Lingotek::getLanguagesWithoutSource($source);
-  if ($entity_type == 'taxonomy_term' && $entity->language == LANGUAGE_NONE && !empty($languages['en_US'])) {
-    unset($languages['en_US']);
+  if ($entity_type == 'taxonomy_term' && $entity->language == LANGUAGE_NONE && !empty($target_locales['en_US'])) {
+    unset($target_locales['en_US']);
   }
 
-  // Add pending statuses for all languages on successful upload only
+  // Add pending statuses for all target locales on successful upload only
   if ($success) {
-    foreach ($languages as $lingotek_locale) {
-      lingotek_keystore($entity_type, $id, 'target_sync_status_' . $lingotek_locale, LingotekSync::STATUS_PENDING);
+    foreach (array_keys($target_locales) as $locale) {
+      lingotek_keystore($entity_type, $id, 'target_sync_status_' . $locale, LingotekSync::STATUS_PENDING);
     }
   }
 

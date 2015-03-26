@@ -475,4 +475,22 @@ class LingotekProfile {
     return array_merge(self::$global_profile, $attributes);
   }
 
+  public function filterTargetLocales($available_locales) {
+    $filtered_locales = array();
+    $default_workflow = $this->getWorkflow();
+    // foreach locale, get the overrides
+    foreach ($available_locales as $locale) {
+      if ($this->isTargetLocaleDisabled($locale)) {
+        // filter this out.
+      }
+      elseif ($this->isTargetLocaleCustom($locale)) {
+        $filtered_locales[$locale] = $this->getTargetLocaleOverrides($locale);
+      }
+      else {
+        $filtered_locales[$locale] = TRUE;
+      }
+    }
+    return $filtered_locales;
+  }
+
 }
