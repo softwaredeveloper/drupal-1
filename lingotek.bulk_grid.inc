@@ -1020,7 +1020,6 @@ function lingotek_grid_build_filters($form_state) {
   asort($source_languages);
 
   $profiles = array();
-  $profiles[LingotekSync::PROFILE_CUSTOM] = t('Custom');
   $profiles[LingotekSync::PROFILE_DISABLED] = t('Disabled');
 
   $profile_defaults = lingotek_get_profiles();
@@ -1773,10 +1772,7 @@ function lingotek_render_configuration($row, $profiles, $disabled_class) {
     $configuration .= '<i class="fa fa-globe' . $disabled_class . '" title="' . t('Crowdsourcing Enabled') . '"></i> ';
   }
 
-  if ($row->lingotek['profile'] == LingotekSync::PROFILE_CUSTOM) {
-    $configuration = t('Custom') . ' <span class="node-configuration">' . $configuration . '</span>';
-  }
-  elseif ($row->lingotek['profile'] == LingotekSync::PROFILE_DISABLED) {
+  if ($row->lingotek['profile'] == LingotekSync::PROFILE_DISABLED) {
     $configuration = t('Disabled');
   }
   else {

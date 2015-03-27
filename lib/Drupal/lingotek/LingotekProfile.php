@@ -272,7 +272,6 @@ class LingotekProfile {
 
       // gather all bundles for searching, as some entities may be one-offs
       // even though Lingotek is not enabled for the entire bundle.
-      self::$profiles[LingotekSync::PROFILE_CUSTOM] = TRUE;
       self::$profiles[LingotekSync::PROFILE_DISABLED] = TRUE;
       // TODO: CREATE SOME KIND OF FOREACH LOOP
       $all_bundles = lingotek_get_bundles_by_profile_id(array_keys(self::$profiles));
