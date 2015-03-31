@@ -394,7 +394,7 @@ class LingotekProfile {
     // don't check for disabled attributes in the parent profiles
     $this->setInherit(FALSE);
     $disabled = FALSE;
-    if (!empty($this->getAttribute('disabled', $target_locale))) {
+    if ($this->getAttribute('disabled', $target_locale)) {
       $disabled = TRUE;
     }
     $this->setInherit(TRUE);
@@ -402,7 +402,7 @@ class LingotekProfile {
   }
 
   public function isTargetLocaleCustom($target_locale) {
-    return !$this->isTargetLocaleDisabled($target_locale) && !empty($this->getTargetLocaleOverrides($target_locale));
+    return !$this->isTargetLocaleDisabled($target_locale) && $this->getTargetLocaleOverrides($target_locale);
   }
 
   public function toArray() {
@@ -503,6 +503,12 @@ class LingotekProfile {
       return array(
         'name' => LingotekSync::PROFILE_DISABLED,
         'profile' => LingotekSync::PROFILE_DISABLED,
+      );
+    }
+    if ($this->getId() == 'ENABLED') {
+      return array(
+        'name' => 'ENABLED',
+        'profile' => 'ENABLED',
       );
     }
     if (empty(self::$profiles[$this->getId()])) {
