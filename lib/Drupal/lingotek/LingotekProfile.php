@@ -28,19 +28,22 @@ class LingotekProfile {
     $this->setId($profile_id);
     $this->setInherit(TRUE);
 
-    if ($profile_id === LingotekSync::PROFILE_DISABLED) {
-      return LingotekSync::PROFILE_DISABLED;
-    }
-    if ($profile_id === LingotekSync::PROFILE_INHERIT) {
-      return LingotekSync::PROFILE_INHERIT;
-    }
     if (empty(self::$profiles)) {
       $this->refresh();
     }
     if (empty(self::$global_profile)) {
       self::$global_profile = lingotek_get_global_profile();
     }
-    if (empty(self::$profiles[$profile_id])) {
+
+    if ($profile_id === LingotekSync::PROFILE_DISABLED) {
+      $this->setName($profile_id);
+      return $this;
+    }
+    if ($profile_id === LingotekSync::PROFILE_INHERIT) {
+      $this->setName($profile_id);
+      return LingotekSync::PROFILE_INHERIT;
+    }
+    if (empty(self::$profiles[$profile_id]) && !empty($profile_attributes)) {
       // create one on the fly
       $unique_attributes = array();
       foreach ($profile_attributes as $key => $value) {
@@ -52,7 +55,7 @@ class LingotekProfile {
       $this->save();
     }
     // A convenience reference to the current profile.
-    $this->profile = &self::$profiles[$this->profile_id];
+    $this->profile = &self::$profiles[$profile_id];
   }
 
   public static function create($profile_id, array $profile_attributes) {
@@ -97,20 +100,44 @@ class LingotekProfile {
     $entity_profiles = variable_get('lingotek_entity_profiles', array());
     if (!empty($source_locale) && !empty($entity_profiles[$entity_type][$bundle . '__' . $source_locale])) {
       try {
-        return new LingotekProfile($entity_profiles[$entity_type][$bundle . '__' . $source_locale]);
+        $profile = new LingotekProfile($entity_profiles[$entity_type][$bundle . '__' . $source_locale]);
+        if ($profile->getName() == LingotekSync::PROFILE_INHERIT) {
+          $profile = new LingotekProfile($entity_profiles[$entity_type][$bundle]);
+        }
+        return $profile;
       }
       catch (Exception $e) {
         // TODO: a debug statement perhaps saying there are no customizations for the given source locale?
       }
     }
-    try {
+    if (!empty($entity_profiles[$entity_type][$bundle])) {
       return new LingotekProfile($entity_profiles[$entity_type][$bundle]);
     }
-    catch (Exception $e) {
-      // TODO: a debug statement perhaps saying there this entity appears to be new, auto-creating a profile
-      $profile_defaults = LingotekProfileManager::getDefaults($entity_type);
+    return self::loadById(LingotekSync::PROFILE_DISABLED);
+  }
 
+  public static function loadByEntity($entity_type, $entity) {
+    list($id, $vid, $bundle) = lingotek_entity_extract_ids($entity_type, $entity);
+    $result = db_select('lingotek_entity_metadata', 'l')
+      ->fields('l', array('value'))
+      ->condition('l.entity_id', $id)
+      ->condition('l.entity_type', $entity_type)
+      ->condition('l.entity_key', 'profile')
+      ->execute();
+    if ($result) {
+      $profile_id = $result->fetchfield();
+      if ($profile_id !== FALSE) {
+        return self::loadById($profile_id);
+      }
     }
+    $source_locale = lingotek_entity_locale($entity_type, $entity);
+    return self::loadByBundle($entity_type, $bundle, $source_locale);
+  }
+
+  // Return the profile ID for a given entity.
+  public static function getIdByEntity($entity_type, $entity) {
+    $profile = self::loadByEntity($entity_type, $entity);
+    return $profile->getId();
   }
 
   // @params TRUE or FALSE, depending on whether the profile should look for inherited attributes
@@ -288,7 +315,9 @@ class LingotekProfile {
   }
 
   public function save() {
-    variable_set('lingotek_profiles', self::$profiles);
+    if ($this->getId() != LingotekSync::PROFILE_DISABLED) {
+      variable_set('lingotek_profiles', self::$profiles);
+    }
   }
 
   public function refresh() {
@@ -296,8 +325,13 @@ class LingotekProfile {
   }
 
   public function delete() {
-    unset(self::$profiles[$this->getId()]);
-    variable_set('lingotek_profiles', $profiles);
+    if (!$this->isProtected()) {
+      if ($this->getEntities()) {
+        throw new LingotekException('Unable to delete profile "@name": profile not empty.', array('@name' => $this->getName()));
+      }
+      unset(self::$profiles[$this->getId()]);
+      variable_set('lingotek_profiles', self::$profiles);
+    }
   }
 
   public function getName() {
@@ -397,9 +431,15 @@ class LingotekProfile {
   }
 
   public function setAttribute($attrib_name, $value, $target_locale = NULL) {
+
+    if ($this->isProtectedAttribute($attrib_name)) {
+      return;
+    }
+
+    $original_value = $this->getAttribute($attrib_name, $value);
+
     if ($target_locale) {
       // Set the language-specific attribute if different from the base attribute
-      $original_value = $this->getAttribute($attrib_name, $value);
       if ($value !== $original_value) {
         $this->initTargetLocaleOverride($target_locale);
         $this->profile['target_language_overrides'][$target_locale][$attrib_name] = $value;
@@ -459,6 +499,12 @@ class LingotekProfile {
   }
 
   public function getAttributes($target_locale = NULL) {
+    if ($this->getId() == LingotekSync::PROFILE_DISABLED) {
+      return array(
+        'name' => LingotekSync::PROFILE_DISABLED,
+        'profile' => LingotekSync::PROFILE_DISABLED,
+      );
+    }
     if (empty(self::$profiles[$this->getId()])) {
       throw new LingotekException('Profile ID "' . $this->getId() . '" not found.');
     }
@@ -468,8 +514,11 @@ class LingotekProfile {
         $attributes = array_merge(self::$profiles[$this->getId()], $attributes);
       }
     }
-    else {
+    elseif (!empty(self::$profiles[$this->getId()])) {
       $attributes = self::$profiles[$this->getId()];
+    }
+    else {
+      $attributes = array();
     }
     return array_merge(self::$global_profile, $attributes);
   }
@@ -490,6 +539,29 @@ class LingotekProfile {
       }
     }
     return $filtered_locales;
+  }
+
+  protected function isProtected() {
+    $locked_profiles = array(
+      LingotekSync::PROFILE_DISABLED,
+      LingotekSync::PROFILE_AUTOMATIC,
+      LingotekSync::PROFILE_MANUAL
+    );
+    if (in_array($this->getId(), $locked_profiles)) {
+      return TRUE;
+    }
+    return FALSE;
+  }
+
+  protected function isProtectedAttribute($attrib_name) {
+    $locked_attribs = array(
+      0 => array('auto_upload', 'auto_download'),
+      1 => array('auto_upload', 'auto_download'),
+    );
+    if (array_key_exists($this->getId(), $locked_attribs) && in_array($attrib_name, $locked_attribs[$this->getId()])) {
+      return TRUE;
+    }
+    return FALSE;
   }
 
 }

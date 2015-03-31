@@ -814,6 +814,11 @@ function lingotek_grid_download_selected($entity_type, $entity_ids, $target_loca
   $operations = array();
   $entities = entity_load($entity_type, $entity_ids);
   foreach ($entities as $entity) {
+    if (variable_get('lingotek_enable_language_specific_profiles')) {
+      // Filter out the target languages that should not be included for this entity.
+      $profile = LingotekProfile::loadByEntity($entity_type, $entity);
+      $target_locales = array_keys($profile->filterTargetLocales($target_locales));
+    }
     foreach ($target_locales as $locale) {
       // Skip language neutral taxonomy terms because their source is really English.
       if ($entity_type == 'taxonomy_term' && $entity->language == LANGUAGE_NONE && $locale == 'en_US') {
@@ -1634,7 +1639,7 @@ function lingotek_bulk_grid_parse_table_data($table_data_raw, $entity_properties
       'document_id' => $row->document_id ? : t('N/A'),
       'content_type' => isset($entity_properties['info']['bundles'][$row->type]['label']) ? $entity_properties['info']['bundles'][$row->type]['label'] : $row->type,
       'last_uploaded' => $row->last_uploaded ? t('@time ago', array('@time' => lingotek_human_readable_timestamp($row->last_uploaded))) : t('Never'),
-      'workflow' => ($row->lingotek['workflow_id'] ? (isset($workflows[$row->lingotek['workflow_id']]) ? check_plain($workflows[$row->lingotek['workflow_id']]) : $row->lingotek['workflow_id']) : ''),
+      'workflow' => (!empty($row->lingotek['workflow_id']) ? (isset($workflows[$row->lingotek['workflow_id']]) ? check_plain($workflows[$row->lingotek['workflow_id']]) : $row->lingotek['workflow_id']) : ''),
       'actions' => '<span class="lingotek-node-actions">' . $actions . '</span>',
       'description' => isset($row->description) ? $row->description : '',
     );
@@ -1762,13 +1767,13 @@ function lingotek_render_source($entity_type, $row, $icon, $languages, $language
 function lingotek_render_configuration($row, $profiles, $disabled_class) {
   $configuration = '';
 
-  if ($row->lingotek['auto_upload']) {
+  if (!empty($row->lingotek['auto_upload'])) {
     $configuration .= '<i class="fa fa-arrow-up' . $disabled_class . '" title="' . t('Automatic Upload') . '"></i> ';
   }
-  if ($row->lingotek['auto_download']) {
+  if (!empty($row->lingotek['auto_download'])) {
     $configuration .= '<i class="fa fa-arrow-down' . $disabled_class . '" title="' . t('Automatic Download') . '"></i> ';
   }
-  if ($row->lingotek['allow_community_translation']) {
+  if (!empty($row->lingotek['allow_community_translation'])) {
     $configuration .= '<i class="fa fa-globe' . $disabled_class . '" title="' . t('Crowdsourcing Enabled') . '"></i> ';
   }
 

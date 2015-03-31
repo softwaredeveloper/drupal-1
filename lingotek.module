@@ -909,11 +909,13 @@ function lingotek_get_node_settings_form($form, &$form_state, $node = NULL) {
     return $form;
   }
 
+  $bundle_profile = LingotekProfile::loadByBundle($entity_type, $form['#bundle']);
+
   $form['lingotek']['profile'] = array(
     '#type' => 'select',
     '#title' => t('Translation Profile'),
     '#options' => lingotek_get_profile_options(),
-    '#default_value' => $node->lingotek['profile'],
+    '#default_value' =>  !empty($node->lingotek['profile']) ? $node->lingotek['profile'] : $bundle_profile->getId(),
   );
 
   // Warning note when enabling nodes with existing Lingotek translations
@@ -988,17 +990,9 @@ function lingotek_entity_save($entity, $entity_type) {
       ->condition('entity_key', $remove, 'IN')
       ->execute();
 
-  // Set the default value for whether the entity's content actually changed.
-  $entity_changed = TRUE;
-
-  $defaults = lingotek_load_profile_defaults($entity_type);
-  $profile_overridden = (!isset($defaults[$bundle]['profile']) || $defaults[$bundle]['profile'] != $entity->lingotek['profile']);
-  if ($profile_overridden) {
-    lingotek_keystore($entity_type, $id, 'profile', $entity->lingotek['profile']);
-  }
-  else {
-    lingotek_keystore_delete($entity_type, $id, 'profile');
-  }
+  // Always store the entity's profile, in case the profile of the same content
+  // type changes in the future to something else.
+  lingotek_keystore($entity_type, $id, 'profile', $entity->lingotek['profile']);
 
   // If the hash changed, handle target statuses
   $entity_changed = lingotek_entity_changed($entity_type, $entity, $id);
@@ -1324,26 +1318,16 @@ function lingotek_entity_load($entities, $entity_type) {
   }
 
   foreach ($entities as &$entity) {
-    list($id, $vid, $bundle) = lingotek_entity_extract_ids($entity_type, $entity);
 
-    // Node profile inheritance heirarchy
-    // Step 1: get global profile
-    $entity->lingotek = $global_profile;
-    // Step 2a: add entity-specific profile, if it exists
-    if ($id && isset($values[$id]['profile']) && is_numeric($values[$id]['profile'])) {
-      $entity->lingotek = array_merge($entity->lingotek, $profiles_list[$values[$id]['profile']]);
-    }
-    // Step 2b: otherwise, add bundle-specific profile
-    elseif (array_key_exists($bundle, $node_profile_defaults)) {
-      $entity->lingotek = array_merge($entity->lingotek, $node_profile_defaults[$bundle]);
-    }
-    // Step 3: add node-specific overrides
-    if ($id && isset($values[$id])) {
-      $entity->lingotek = array_merge($entity->lingotek, $values[$id]);
-    }
-    // Step 4: if no profile, then disabled.
-    if (!isset($entity->lingotek['profile']) || !strlen($entity->lingotek['profile'])) {
-      $entity->lingotek['profile'] = LingotekSync::PROFILE_DISABLED;
+    // Pull profile values for the entity
+    $entity_profile = LingotekProfile::loadByEntity($entity_type, $entity);
+    $entity->lingotek = $entity_profile->getAttributes();
+    //$entity->lingotek['profile'] = $entity_profile->getId();
+
+    // Overlay node-specific values (like doc ID, etc.) onto the entity
+    list($id, $vid, $bundle) = lingotek_entity_extract_ids($entity_type, $entity);
+    if (!empty($values[$id])) {
+      $entity->lingotek = array_merge($entity_profile->getAttributes(), $values[$id]);
     }
   }
 }
@@ -1368,13 +1352,13 @@ function lingotek_entity_update($entity, $entity_type) {
     return;
   }
 
-  list($id, $vid, $bundle) = lingotek_entity_extract_ids($entity_type, $entity);
-
   lingotek_entity_save($entity, $entity_type);
 }
 
 function lingotek_entity_upload_triggered($entity, $entity_type, $changed = TRUE, &$context = array()) {
-  list($id, $vid, $bundle) = lingotek_entity_extract_ids($entity_type, $entity);
+  if ($entity->lingotek['profile'] == LingotekSync::PROFILE_DISABLED) {
+    return;
+  }
 
   if (isset($entity->lingotek_upload_override)) {
     if ($entity->lingotek_upload_override) {
@@ -1383,7 +1367,9 @@ function lingotek_entity_upload_triggered($entity, $entity_type, $changed = TRUE
     return;
   }
 
-  if ((!lingotek_enabled_bundle($entity_type, $bundle) && $entity->lingotek['profile'] == LingotekSync::PROFILE_DISABLED) || !isset($entity->language) || (!Lingotek::isSupportedLanguage($entity->language) && !($entity->language == LANGUAGE_NONE && $entity_type == 'taxonomy_term'))) {
+  list($id, $vid, $bundle) = lingotek_entity_extract_ids($entity_type, $entity);
+
+  if (!lingotek_enabled_bundle($entity_type, $bundle) || !isset($entity->language) || (!Lingotek::isSupportedLanguage($entity->language) && !($entity->language == LANGUAGE_NONE && $entity_type == 'taxonomy_term'))) {
     return;
   }
 
