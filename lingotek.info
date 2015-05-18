@@ -1,0 +1,14 @@
+name = "Lingotek"
+description = "Extends Drupal's multilingual features using the Lingotek Collaborative Translation Platform."
+core = "6.x"
+dependencies[] = locale
+dependencies[] = translation
+php = "5.2"
+version = 6.22.$Revision: 25159 $
+
+; Information added by drupal.org packaging script on 2012-03-22
+version = "6.x-1.43"
+core = "6.x"
+project = "lingotek"
+datestamp = "1332435049"
+
